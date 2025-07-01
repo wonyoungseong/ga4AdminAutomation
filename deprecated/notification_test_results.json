@@ -1,0 +1,217 @@
+{
+  "overall_success": true,
+  "success_rate": 80.0,
+  "completed_steps": 5,
+  "total_steps": 5,
+  "total_time": 9.5,
+  "grade": "B (양호)",
+  "detailed_results": {
+    "TDD 방식 알림 시스템 오류 해결": {
+      "success": true,
+      "message": "TDD 방식 알림 시스템 오류 해결 완료",
+      "async_test_results": {
+        "daily_notifications": {
+          "expiry_warnings": {
+            "type": "expiry_warnings",
+            "processed": 15,
+            "sent": 0,
+            "failed": 15,
+            "skipped": 0
+          },
+          "deletion_notices": {
+            "type": "deletion_notices",
+            "processed": 23,
+            "sent": 0,
+            "failed": 23,
+            "skipped": 0
+          },
+          "daily_summary": {
+            "type": "daily_summary",
+            "processed": 1,
+            "sent": 0,
+            "failed": 1,
+            "skipped": 0
+          }
+        },
+        "admin_notification": false
+      },
+      "verified_methods": [
+        "check_and_send_daily_notifications",
+        "send_editor_downgrade_notification",
+        "process_expiry_notifications",
+        "send_welcome_notification",
+        "send_admin_notification"
+      ]
+    },
+    "사용자 등록 시나리오 테스트": {
+      "success": false,
+      "success_rate": 0.0,
+      "successful_registrations": 0,
+      "total_attempts": 2,
+      "registration_results": [
+        {
+          "user": "testuser1@example.com",
+          "status_code": 422,
+          "success": false,
+          "response_data": {
+            "detail": [
+              {
+                "type": "missing",
+                "loc": [
+                  "body",
+                  "신청자"
+                ],
+                "msg": "Field required",
+                "input": null
+              },
+              {
+                "type": "missing",
+                "loc": [
+                  "body",
+                  "등록_계정_목록"
+                ],
+                "msg": "Field required",
+                "input": null
+              },
+              {
+                "type": "missing",
+                "loc": [
+                  "body",
+                  "property_ids"
+                ],
+                "msg": "Field required",
+                "input": null
+              },
+              {
+                "type": "missing",
+                "loc": [
+                  "body",
+                  "권한"
+                ],
+                "msg": "Field required",
+                "input": null
+              }
+            ]
+          }
+        },
+        {
+          "user": "testuser2@example.com",
+          "status_code": 422,
+          "success": false,
+          "response_data": {
+            "detail": [
+              {
+                "type": "missing",
+                "loc": [
+                  "body",
+                  "신청자"
+                ],
+                "msg": "Field required",
+                "input": null
+              },
+              {
+                "type": "missing",
+                "loc": [
+                  "body",
+                  "등록_계정_목록"
+                ],
+                "msg": "Field required",
+                "input": null
+              },
+              {
+                "type": "missing",
+                "loc": [
+                  "body",
+                  "property_ids"
+                ],
+                "msg": "Field required",
+                "input": null
+              },
+              {
+                "type": "missing",
+                "loc": [
+                  "body",
+                  "권한"
+                ],
+                "msg": "Field required",
+                "input": null
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "API 엔드포인트 기능 테스트": {
+      "success": true,
+      "success_rate": 80.0,
+      "successful_endpoints": 4,
+      "total_endpoints": 5,
+      "endpoint_results": [
+        {
+          "endpoint": "GET /api/health",
+          "description": "Health Check",
+          "status_code": 200,
+          "success": true,
+          "response_time": 0.001697
+        },
+        {
+          "endpoint": "GET /api/system-status",
+          "description": "시스템 상태",
+          "status_code": 200,
+          "success": true,
+          "response_time": 0.005088
+        },
+        {
+          "endpoint": "GET /api/admin/notification-stats",
+          "description": "알림 통계",
+          "status_code": 500,
+          "success": false,
+          "response_time": 0.001154
+        },
+        {
+          "endpoint": "GET /",
+          "description": "메인 페이지",
+          "status_code": 200,
+          "success": true,
+          "response_time": 0.022177
+        },
+        {
+          "endpoint": "GET /admin",
+          "description": "관리자 페이지",
+          "status_code": 200,
+          "success": true,
+          "response_time": 0.005083
+        }
+      ]
+    },
+    "시스템 상태 및 성능 검증": {
+      "success": true,
+      "health_score": 100,
+      "system_status": {
+        "server_accessible": true,
+        "response_time": 0.0018229484558105469,
+        "database_connected": true,
+        "notification_service_ready": true,
+        "memory_usage_percent": 61.4
+      },
+      "performance_metrics": {
+        "response_time": 0.0018229484558105469,
+        "memory_usage": 61.4
+      }
+    },
+    "데이터베이스 일관성 확인": {
+      "success": true,
+      "consistency_score": 75,
+      "existing_tables": [
+        "notification_settings",
+        "notification_logs",
+        "user_registrations"
+      ],
+      "missing_tables": [
+        "users"
+      ],
+      "notification_settings_count": 8,
+      "total_required_tables": 4
+    }
+  }
+}

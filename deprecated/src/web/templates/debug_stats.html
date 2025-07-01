@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>통계 데이터 디버깅</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .debug-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .success { background-color: #d4edda; }
+        .error { background-color: #f8d7da; }
+        .info { background-color: #d1ecf1; }
+        .warning { background-color: #fff3cd; }
+        
+        pre {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 3px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <h1>📊 통계 데이터 디버깅</h1>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <div class="debug-section info">
+                    <h5>1. API 응답 테스트</h5>
+                    <button class="btn btn-primary" onclick="testApiResponse()">API 호출 테스트</button>
+                    <div id="api-result" class="mt-3"></div>
+                </div>
+                
+                <div class="debug-section warning">
+                    <h5>2. 데이터 처리 테스트</h5>
+                    <button class="btn btn-warning" onclick="testDataProcessing()">데이터 처리 테스트</button>
+                    <div id="processing-result" class="mt-3"></div>
+                </div>
+                
+                <div class="debug-section success">
+                    <h5>3. DOM 업데이트 테스트</h5>
+                    <button class="btn btn-success" onclick="testDomUpdate()">DOM 업데이트 테스트</button>
+                    <div id="dom-result" class="mt-3"></div>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="debug-section">
+                    <h5>📊 실제 시스템 정보</h5>
+                    <div id="system-info">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <strong>계정:</strong> <span id="accounts-count">로딩중...</span>개<br>
+                                <strong>프로퍼티:</strong> <span id="properties-count">로딩중...</span>개<br>
+                                <strong>활성 사용자:</strong> <span id="users-count">로딩중...</span>명
+                            </div>
+                            <div class="col-md-6">
+                                <strong>만료 예정:</strong> <span id="expiring-count">로딩중...</span>명<br>
+                                <strong>총 알림:</strong> <span id="notifications-count">로딩중...</span>개<br>
+                                <strong>등록:</strong> <span id="registrations-count">로딩중...</span>개
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="debug-section">
+                    <h5>🔍 실시간 로그</h5>
+                    <div id="debug-log" style="height: 300px; overflow-y: auto; background-color: #f8f9fa; padding: 10px; border-radius: 3px;">
+                        <div class="log-entry">디버깅 시작...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="debug-section">
+            <h5>🚀 전체 프로세스 테스트</h5>
+            <button class="btn btn-danger" onclick="runFullTest()">전체 테스트 실행</button>
+            <div id="full-test-result" class="mt-3"></div>
+        </div>
+    </div>
+
+    <script>
+        // 로그 함수
+        function addLog(message, type = 'info') {
+            const logContainer = document.getElementById('debug-log');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry text-${type === 'error' ? 'danger' : type === 'success' ? 'success' : 'dark'}`;
+            logEntry.innerHTML = `[${timestamp}] ${message}`;
+            logContainer.appendChild(logEntry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+
+        // 1. API 응답 테스트
+        async function testApiResponse() {
+            addLog('📡 API 호출 시작...', 'info');
+            const resultDiv = document.getElementById('api-result');
+            
+            try {
+                const response = await fetch('/api/stats');
+                addLog(`📡 응답 상태: ${response.status}`, response.ok ? 'success' : 'error');
+                
+                const data = await response.json();
+                addLog('📡 응답 데이터 수신 완료', 'success');
+                
+                resultDiv.innerHTML = `
+                    <h6>API 응답:</h6>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+                
+                return data;
+            } catch (error) {
+                addLog(`❌ API 호출 실패: ${error.message}`, 'error');
+                resultDiv.innerHTML = `<div class="text-danger">오류: ${error.message}</div>`;
+                return null;
+            }
+        }
+
+        // 2. 데이터 처리 테스트
+        async function testDataProcessing() {
+            addLog('🔄 데이터 처리 테스트 시작...', 'info');
+            const resultDiv = document.getElementById('processing-result');
+            
+            try {
+                const data = await testApiResponse();
+                if (!data) {
+                    throw new Error('API 데이터를 가져올 수 없습니다');
+                }
+                
+                addLog('🔍 데이터 구조 분석 중...', 'info');
+                
+                const hasSuccess = data.hasOwnProperty('success');
+                const hasStats = data.hasOwnProperty('stats');
+                const isSuccessTrue = data.success === true;
+                
+                addLog(`✓ success 속성 존재: ${hasSuccess}`, hasSuccess ? 'success' : 'error');
+                addLog(`✓ stats 속성 존재: ${hasStats}`, hasStats ? 'success' : 'error');
+                addLog(`✓ success 값이 true: ${isSuccessTrue}`, isSuccessTrue ? 'success' : 'error');
+                
+                if (hasStats && data.stats) {
+                    const stats = data.stats;
+                    const fields = ['total_accounts', 'total_properties', 'active_users', 'expiring_soon', 'total_notifications', 'total_registrations'];
+                    
+                    let processedData = {};
+                    fields.forEach(field => {
+                        const value = stats[field];
+                        const isDefined = value !== undefined;
+                        const isNumber = typeof value === 'number';
+                        
+                        processedData[field] = {
+                            raw: value,
+                            isDefined,
+                            isNumber,
+                            processed: isDefined ? value : 0
+                        };
+                        
+                        addLog(`${field}: ${value} (정의됨: ${isDefined}, 숫자: ${isNumber})`, isDefined && isNumber ? 'success' : 'error');
+                    });
+                    
+                    resultDiv.innerHTML = `
+                        <h6>처리된 데이터:</h6>
+                        <pre>${JSON.stringify(processedData, null, 2)}</pre>
+                    `;
+                    
+                    return processedData;
+                } else {
+                    throw new Error('stats 데이터가 없습니다');
+                }
+                
+            } catch (error) {
+                addLog(`❌ 데이터 처리 실패: ${error.message}`, 'error');
+                resultDiv.innerHTML = `<div class="text-danger">오류: ${error.message}</div>`;
+                return null;
+            }
+        }
+
+        // 3. DOM 업데이트 테스트
+        async function testDomUpdate() {
+            addLog('🎯 DOM 업데이트 테스트 시작...', 'info');
+            const resultDiv = document.getElementById('dom-result');
+            
+            try {
+                const processedData = await testDataProcessing();
+                if (!processedData) {
+                    throw new Error('처리된 데이터를 가져올 수 없습니다');
+                }
+                
+                // 개별 요소 업데이트
+                const elements = {
+                    'accounts-count': processedData.total_accounts?.processed || 0,
+                    'properties-count': processedData.total_properties?.processed || 0,
+                    'users-count': processedData.active_users?.processed || 0,
+                    'expiring-count': processedData.expiring_soon?.processed || 0,
+                    'notifications-count': processedData.total_notifications?.processed || 0,
+                    'registrations-count': processedData.total_registrations?.processed || 0
+                };
+                
+                let updateResults = [];
+                
+                Object.entries(elements).forEach(([elementId, value]) => {
+                    const element = document.getElementById(elementId);
+                    if (element) {
+                        element.textContent = value;
+                        updateResults.push(`✓ ${elementId}: ${value}`);
+                        addLog(`✓ ${elementId} 업데이트: ${value}`, 'success');
+                    } else {
+                        updateResults.push(`✗ ${elementId}: 요소 없음`);
+                        addLog(`❌ ${elementId} 요소를 찾을 수 없음`, 'error');
+                    }
+                });
+                
+                resultDiv.innerHTML = `
+                    <h6>DOM 업데이트 결과:</h6>
+                    <ul>
+                        ${updateResults.map(result => `<li>${result}</li>`).join('')}
+                    </ul>
+                `;
+                
+                addLog('🎯 DOM 업데이트 완료', 'success');
+                
+            } catch (error) {
+                addLog(`❌ DOM 업데이트 실패: ${error.message}`, 'error');
+                resultDiv.innerHTML = `<div class="text-danger">오류: ${error.message}</div>`;
+            }
+        }
+
+        // 전체 테스트 실행
+        async function runFullTest() {
+            addLog('🚀 전체 테스트 시작...', 'info');
+            const resultDiv = document.getElementById('full-test-result');
+            
+            try {
+                // 순서대로 실행
+                await testApiResponse();
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                await testDataProcessing();
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                await testDomUpdate();
+                
+                addLog('🎉 전체 테스트 완료!', 'success');
+                resultDiv.innerHTML = `<div class="alert alert-success">모든 테스트가 완료되었습니다. 위의 로그를 확인해주세요.</div>`;
+                
+            } catch (error) {
+                addLog(`❌ 전체 테스트 실패: ${error.message}`, 'error');
+                resultDiv.innerHTML = `<div class="alert alert-danger">테스트 실패: ${error.message}</div>`;
+            }
+        }
+
+        // 페이지 로드 시 자동 테스트
+        document.addEventListener('DOMContentLoaded', function() {
+            addLog('📄 디버깅 페이지 로드 완료', 'success');
+            
+            // 3초 후 자동으로 DOM 업데이트 테스트 실행
+            setTimeout(() => {
+                addLog('🔄 자동 테스트 시작...', 'info');
+                testDomUpdate();
+            }, 1000);
+        });
+    </script>
+</body>
+</html> 

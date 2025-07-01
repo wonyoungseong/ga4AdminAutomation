@@ -1,0 +1,146 @@
+{
+  "timestamp": "20250629_224611",
+  "test_results": {
+    "시스템 상태 확인": {
+      "system_stats": {
+        "success": true,
+        "data": {
+          "success": true,
+          "data": {
+            "stats": {
+              "total_accounts": 2,
+              "total_properties": 2,
+              "active_users": 210,
+              "expiring_soon": 210,
+              "total_notifications": 25,
+              "total_audit_logs": 513,
+              "total_registrations": 246
+            }
+          }
+        },
+        "response_code": 200
+      },
+      "dashboard_access": {
+        "success": false,
+        "response_code": 404,
+        "content_type": "application/json"
+      }
+    },
+    "API 엔드포인트 테스트": {
+      "/api/stats": {
+        "success": true,
+        "response_code": 200,
+        "response_time": 0.00397,
+        "has_data": true
+      },
+      "/api/users": {
+        "success": true,
+        "response_code": 200,
+        "response_time": 0.002985,
+        "has_data": true
+      },
+      "/api/properties": {
+        "success": true,
+        "response_code": 200,
+        "response_time": 0.001649,
+        "has_data": true
+      },
+      "/api/accounts": {
+        "success": true,
+        "response_code": 200,
+        "response_time": 0.001598,
+        "has_data": true
+      },
+      "/api/notification-stats": {
+        "success": true,
+        "response_code": 200,
+        "response_time": 0.00324,
+        "has_data": true
+      },
+      "/api/scheduler-status": {
+        "success": true,
+        "response_code": 200,
+        "response_time": 0.001172,
+        "has_data": true
+      }
+    },
+    "사용자 목록 조회": {
+      "user_list": {
+        "success": true,
+        "user_count": 50,
+        "has_pagination": true
+      },
+      "filtered_users": {
+        "success": true,
+        "filtered_count": 10
+      }
+    },
+    "프로퍼티 및 계정 조회": {
+      "properties": {
+        "success": true,
+        "property_count": 2
+      },
+      "accounts": {
+        "success": true,
+        "has_data": true
+      }
+    },
+    "알림 시스템 테스트": {
+      "notification_stats": {
+        "success": true,
+        "response_code": 200
+      },
+      "test_notification": {
+        "success": true,
+        "response_code": 200
+      },
+      "notification_logs": {
+        "success": true,
+        "response_code": 200
+      }
+    },
+    "스케줄러 테스트": {
+      "scheduler_status": {
+        "success": true,
+        "response_code": 200
+      },
+      "expiry_notifications": {
+        "success": true,
+        "response_code": 200
+      },
+      "expired_users": {
+        "success": true,
+        "response_code": 200
+      }
+    },
+    "성능 테스트": {
+      "concurrent_requests": {
+        "success": true,
+        "total_requests": 10,
+        "successful_requests": 10,
+        "total_time": 0.019127,
+        "avg_response_time": 0.0019127000000000003
+      },
+      "response_time": {
+        "success": true,
+        "average_time": 0.0026666000000000003,
+        "max_time": 0.00348,
+        "min_time": 0.00212
+      }
+    },
+    "관리자 기능 테스트": {
+      "property_scan": {
+        "success": true,
+        "response_code": 200
+      },
+      "process_queue": {
+        "success": true,
+        "response_code": 200
+      },
+      "maintenance": {
+        "success": true,
+        "response_code": 200
+      }
+    }
+  }
+}

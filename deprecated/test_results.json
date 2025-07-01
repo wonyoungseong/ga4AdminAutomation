@@ -1,0 +1,56 @@
+{
+  "passed": 10,
+  "failed": 0,
+  "details": [
+    {
+      "scenario": "시스템 초기화",
+      "status": "PASSED",
+      "timestamp": "2025-06-27T15:46:34.535734"
+    },
+    {
+      "scenario": "이메일 검증",
+      "status": "PASSED",
+      "timestamp": "2025-06-27T15:46:34.535831"
+    },
+    {
+      "scenario": "권한 추가",
+      "status": "PASSED",
+      "timestamp": "2025-06-27T15:46:34.537688"
+    },
+    {
+      "scenario": "권한 업데이트",
+      "status": "PASSED",
+      "timestamp": "2025-06-27T15:46:34.538889"
+    },
+    {
+      "scenario": "권한 삭제",
+      "status": "PASSED",
+      "timestamp": "2025-06-27T15:46:34.545025"
+    },
+    {
+      "scenario": "알림 시스템",
+      "status": "PASSED",
+      "timestamp": "2025-06-27T15:46:34.560033"
+    },
+    {
+      "scenario": "UI/UX 검증",
+      "status": "PASSED",
+      "timestamp": "2025-06-27T15:46:34.562635"
+    },
+    {
+      "scenario": "데이터베이스 연동",
+      "status": "PASSED",
+      "timestamp": "2025-06-27T15:46:34.565380"
+    },
+    {
+      "scenario": "성능 및 안정성",
+      "status": "PASSED",
+      "timestamp": "2025-06-27T15:46:34.582359"
+    },
+    {
+      "scenario": "보안 및 권한",
+      "status": "PASSED",
+      "timestamp": "2025-06-27T15:46:34.582436"
+    }
+  ]
+}

@@ -1,0 +1,216 @@
+{
+  "tags": {
+    "master": {
+      "tasks": [],
+      "metadata": {
+        "created": "2025-07-01T11:53:00.000Z",
+        "description": "기본 master 태그"
+      }
+    }
+  },
+  "config": {
+    "taskIdCounter": 1
+  },
+  "phase1": {
+    "tasks": [
+      {
+        "id": 1,
+        "title": "Supabase 프로젝트 설정",
+        "description": "Supabase 프로젝트 생성, 데이터베이스 연결 설정, 환경 변수 구성",
+        "details": "1. Supabase.com에서 새 프로젝트 생성 2. 데이터베이스 스키마 적용 3. API 키 및 환경 변수 설정",
+        "testStrategy": "",
+        "status": "done",
+        "dependencies": [],
+        "priority": "high",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Supabase 프로젝트 생성",
+            "description": "Supabase.com에서 새 프로젝트 생성 및 초기 설정",
+            "details": "1. Supabase.com 회원가입/로그인 2. 새 프로젝트 생성 3. 프로젝트명: ga4-admin-automation 4. 지역: Asia Northeast (Tokyo) 선택",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 1
+          },
+          {
+            "id": 2,
+            "title": "데이터베이스 스키마 적용",
+            "description": "SQL 마이그레이션 파일을 Supabase에 적용",
+            "details": "1. Supabase SQL Editor 접속 2. migration_001_initial_schema.sql 파일 내용 복사 3. SQL 실행하여 테이블 생성 4. 테이블 생성 확인",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 1
+          },
+          {
+            "id": 3,
+            "title": "환경 변수 및 API 키 설정",
+            "description": "Supabase API 키 수집 및 .env 파일 구성",
+            "details": "1. Supabase 프로젝트 설정에서 API 키 복사 2. 프로젝트 URL 복사 3. .env 파일 생성 4. SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY 설정",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 1
+          },
+          {
+            "id": 4,
+            "title": "Supabase 연결 테스트",
+            "description": "Python으로 Supabase 연결 테스트 코드 작성 및 실행",
+            "details": "1. supabase-py 라이브러리 설치 2. 기본 연결 테스트 스크립트 작성 3. 데이터베이스 연결 확인 4. 테이블 조회 테스트",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 1
+          }
+        ]
+      },
+      {
+        "id": 2,
+        "title": "FastAPI 백엔드 기본 구조 설정",
+        "description": "FastAPI 프로젝트 초기화, 기본 라우팅 설정, CORS 설정",
+        "details": "1. FastAPI 프로젝트 구조 생성 2. requirements.txt 업데이트 3. 기본 API 엔드포인트 생성 4. CORS 미들웨어 설정",
+        "testStrategy": "",
+        "status": "done",
+        "dependencies": [
+          1
+        ],
+        "priority": "high",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "\"FastAPI",
+            "description": "\"체계적인",
+            "details": "\"1.",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 2
+          },
+          {
+            "id": 2,
+            "title": "\"기본",
+            "description": "\"main.py",
+            "details": "\"1.",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 2
+          },
+          {
+            "id": 3,
+            "title": "\"API",
+            "description": "\"모듈별",
+            "details": "\"1.",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 2
+          },
+          {
+            "id": 4,
+            "title": "CORS 미들웨어 및 기본 설정",
+            "description": "CORS 설정, 보안 헤더, 로깅 등 기본 미들웨어 구성",
+            "details": "1. CORS 미들웨어 설정 2. 보안 헤더 미들웨어 추가 3. 로깅 미들웨어 설정 4. 예외 처리 핸들러 추가",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 2
+          },
+          {
+            "id": 5,
+            "title": "Supabase 연동 및 테스트",
+            "description": "FastAPI에서 Supabase 클라이언트 설정 및 기본 연결 테스트",
+            "details": "1. 백엔드용 Supabase 클라이언트 모듈 생성 2. 환경 변수에서 설정 로드 3. 기본 데이터베이스 연결 테스트 엔드포인트 4. FastAPI 서버 실행 및 동작 확인",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 2
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "title": "Google Analytics Admin API 연동",
+        "description": "Service Account 설정, Google API 클라이언트 구성, 기본 연결 테스트",
+        "details": "1. Google Cloud Console에서 Service Account 키 생성 2. google-analytics-admin 라이브러리 설치 3. API 클라이언트 초기화 4. 연결 테스트 코드 작성",
+        "testStrategy": "",
+        "status": "done",
+        "dependencies": [
+          2
+        ],
+        "priority": "high",
+        "subtasks": []
+      },
+      {
+        "id": 4,
+        "title": "기본 사용자 관리 시스템",
+        "description": "사용자 등록, 역할 관리, 기본 인증 기능 구현",
+        "details": "1. JWT 기반 인증 시스템 구현 완료 2. AuthService 클래스 구현 완료 3. 사용자 관리 API 구현 완료 4. 관리자 권한 시스템 구현 완료",
+        "testStrategy": "모든 인증 API 테스트 성공 (로그인, 토큰 검증, 프로필 조회, 권한 확인)",
+        "status": "done",
+        "dependencies": [
+          1
+        ],
+        "priority": "high",
+        "subtasks": []
+      },
+      {
+        "id": 5,
+        "title": "권한 신청 및 처리 시스템",
+        "description": "GA4 권한 신청 워크플로우 구현, 자동/수동 승인 시스템, 권한 만료 관리",
+        "details": "1. 권한 신청 API 구현 2. 자동 승인 로직 (Viewer/Analyst) 3. 수동 승인 워크플로우 (Editor/Admin) 4. 권한 만료 관리 시스템 5. 알림 시스템 기초",
+        "testStrategy": "권한 신청부터 승인, 만료까지 전체 워크플로우 테스트",
+        "status": "pending",
+        "dependencies": [
+          3,
+          4
+        ],
+        "priority": "high",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "권한 신청 모델 및 API 구현",
+            "description": "권한 신청 요청 모델 정의 및 기본 신청 API 엔드포인트 구현",
+            "details": "1. PermissionRequest 모델 정의 2. 권한 신청 API 엔드포인트 3. 신청 데이터 검증 4. 데이터베이스 저장 로직",
+            "status": "pending",
+            "dependencies": [],
+            "parentTaskId": 5
+          },
+          {
+            "id": 2,
+            "title": "자동 승인 로직 구현 (Viewer/Analyst)",
+            "description": "Viewer/Analyst 권한에 대한 자동 승인 시스템 구현",
+            "details": "1. 자동 승인 규칙 엔진 2. GA4 API 연동하여 즉시 권한 부여 3. 만료일 자동 계산 (60일) 4. 승인 완료 상태 업데이트",
+            "status": "pending",
+            "dependencies": [1],
+            "parentTaskId": 5
+          },
+          {
+            "id": 3,
+            "title": "수동 승인 워크플로우 구현 (Editor/Admin)",
+            "description": "Editor/Admin 권한에 대한 수동 승인 시스템 구현",
+            "details": "1. 승인 대기 상태 관리 2. 관리자 승인/거부 API 3. 승인 후 GA4 권한 부여 4. 거부 시 사유 저장",
+            "status": "pending",
+            "dependencies": [1],
+            "parentTaskId": 5
+          },
+          {
+            "id": 4,
+            "title": "권한 만료 관리 시스템",
+            "description": "권한 만료 날짜 추적 및 자동 제거 시스템 구현",
+            "details": "1. 만료 예정 권한 조회 API 2. 자동 권한 제거 스케줄러 3. 연장 요청 API 4. 만료 통계 대시보드",
+            "status": "pending",
+            "dependencies": [2, 3],
+            "parentTaskId": 5
+          },
+          {
+            "id": 5,
+            "title": "기본 알림 시스템",
+            "description": "권한 승인/거부/만료 관련 기본 알림 시스템 구현",
+            "details": "1. 승인/거부 알림 API 2. 만료 예정 알림 3. 이메일 템플릿 기초 4. 알림 로그 시스템",
+            "status": "pending",
+            "dependencies": [2, 3],
+            "parentTaskId": 5
+          }
+        ]
+      }
+    ],
+    "metadata": {
+      "created": "2025-07-01T11:54:54.845Z",
+      "updated": "2025-07-01T12:44:12.505Z",
+      "description": "Phase 1 개발 작업"
+    }
+  }
+}
