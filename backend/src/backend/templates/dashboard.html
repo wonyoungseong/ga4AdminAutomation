@@ -1,0 +1,429 @@
+{% extends "base_layout.html" %}
+
+{% block title %}Dashboard - GA4 Admin{% endblock %}
+{% block user_role %}{{ user.role }}{% endblock %}
+
+{% block navigation %}
+<!-- Enhanced Navigation Header -->
+<nav class="bg-white shadow-sm border-b border-gray-200" aria-label="Main navigation">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between h-16">
+            <!-- Logo and brand -->
+            <div class="flex items-center">
+                <div class="flex-shrink-0 flex items-center">
+                    <div class="h-8 w-8 bg-gradient-to-br role-{{ user.role }} rounded-lg flex items-center justify-center">
+                        <i data-lucide="{{ role_config.icon | lower }}" class="h-5 w-5 text-white"></i>
+                    </div>
+                    <span class="ml-2 text-xl font-semibold text-gray-900">
+                        GA4 Admin
+                    </span>
+                </div>
+                
+                <!-- Desktop navigation -->
+                <div class="hidden lg:ml-10 lg:flex lg:space-x-8">
+                    <a href="/dashboard" 
+                       class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-colors">
+                        <i data-lucide="layout-dashboard" class="h-4 w-4 mr-1"></i>
+                        Dashboard
+                    </a>
+                    
+                    {% if user.role in ['super_admin', 'admin'] %}
+                    <a href="/users" 
+                       class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-colors">
+                        <i data-lucide="users" class="h-4 w-4 mr-1"></i>
+                        Users
+                    </a>
+                    {% endif %}
+                    
+                    <a href="/permissions" 
+                       class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-colors">
+                        <i data-lucide="lock" class="h-4 w-4 mr-1"></i>
+                        Permissions
+                    </a>
+                    
+                    <a href="/clients" 
+                       class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-colors">
+                        <i data-lucide="building" class="h-4 w-4 mr-1"></i>
+                        Clients
+                    </a>
+                </div>
+            </div>
+            
+            <!-- Right section -->
+            <div class="flex items-center space-x-4">
+                <!-- Search -->
+                <div class="hidden md:block">
+                    <div class="relative">
+                        <input type="text" 
+                               id="search-input"
+                               placeholder="Search... (Ctrl+K)"
+                               class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-{{ role_config.theme.primary }} focus:border-{{ role_config.theme.primary }} sm:text-sm">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i data-lucide="search" class="h-4 w-4 text-gray-400"></i>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Notifications -->
+                <div class="relative">
+                    <button type="button" 
+                            class="p-1 rounded-full text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-{{ role_config.theme.primary }}" 
+                            aria-label="View notifications">
+                        <i data-lucide="bell" class="h-6 w-6"></i>
+                        {% if notifications.unread_count > 0 %}
+                        <span class="absolute -top-1 -right-1 h-4 w-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
+                            {{ notifications.unread_count }}
+                        </span>
+                        {% endif %}
+                    </button>
+                </div>
+                
+                <!-- User menu -->
+                <div class="relative ml-3">
+                    <button type="button" 
+                            id="profile-button"
+                            class="flex text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-{{ role_config.theme.primary }}" 
+                            aria-expanded="false" 
+                            aria-haspopup="true">
+                        <span class="sr-only">Open user menu</span>
+                        <img class="h-8 w-8 rounded-full" 
+                             src="{{ user.avatar_url }}" 
+                             alt="{{ user.name }}">
+                    </button>
+                </div>
+                
+                <!-- Mobile menu button -->
+                <button type="button" 
+                        class="lg:hidden p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-{{ role_config.theme.primary }}"
+                        onclick="toggleMobileMenu()"
+                        aria-controls="mobile-menu" 
+                        aria-expanded="false">
+                    <span class="sr-only">Open main menu</span>
+                    <i data-lucide="menu" class="h-6 w-6"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Mobile menu -->
+    <div id="mobile-menu" 
+         class="lg:hidden fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg transform -translate-x-full transition-transform duration-300 ease-in-out">
+        <div class="flex items-center justify-between h-16 px-4 border-b border-gray-200">
+            <span class="text-lg font-semibold text-gray-900">Navigation</span>
+            <button onclick="toggleMobileMenu()" 
+                    class="p-2 rounded-md text-gray-400 hover:text-gray-500">
+                <i data-lucide="x" class="h-5 w-5"></i>
+            </button>
+        </div>
+        
+        <nav class="mt-5 px-2">
+            <a href="/dashboard" 
+               class="group flex items-center px-2 py-2 text-base font-medium rounded-md text-gray-600 hover:bg-gray-50 hover:text-gray-900">
+                <i data-lucide="layout-dashboard" class="mr-4 h-5 w-5 text-gray-400 group-hover:text-gray-500"></i>
+                Dashboard
+            </a>
+            
+            {% if user.role in ['super_admin', 'admin'] %}
+            <a href="/users" 
+               class="group flex items-center px-2 py-2 text-base font-medium rounded-md text-gray-600 hover:bg-gray-50 hover:text-gray-900">
+                <i data-lucide="users" class="mr-4 h-5 w-5 text-gray-400 group-hover:text-gray-500"></i>
+                Users
+            </a>
+            {% endif %}
+            
+            <a href="/permissions" 
+               class="group flex items-center px-2 py-2 text-base font-medium rounded-md text-gray-600 hover:bg-gray-50 hover:text-gray-900">
+                <i data-lucide="lock" class="mr-4 h-5 w-5 text-gray-400 group-hover:text-gray-500"></i>
+                Permissions
+            </a>
+            
+            <a href="/clients" 
+               class="group flex items-center px-2 py-2 text-base font-medium rounded-md text-gray-600 hover:bg-gray-50 hover:text-gray-900">
+                <i data-lucide="building" class="mr-4 h-5 w-5 text-gray-400 group-hover:text-gray-500"></i>
+                Clients
+            </a>
+        </nav>
+    </div>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+    <!-- Page header -->
+    <div class="px-4 py-6 sm:px-0">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900 animate-fade-in">
+                    Welcome back, {{ user.name }}
+                </h1>
+                <p class="mt-1 text-sm text-gray-500">
+                    {{ role_config.name }} Dashboard
+                </p>
+            </div>
+            
+            <!-- Role badge -->
+            <div class="flex items-center space-x-3">
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium" 
+                      style="background-color: {{ role_config.theme.primary }}20; color: {{ role_config.theme.primary }}">
+                    <i data-lucide="{{ role_config.icon | lower }}" class="h-4 w-4 mr-1"></i>
+                    {{ role_config.name }}
+                </span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Quick stats cards -->
+    <div class="px-4 sm:px-0">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            {% for stat in dashboard_stats %}
+            <div class="bg-white overflow-hidden shadow rounded-lg animate-slide-up" 
+                 style="animation-delay: {{ loop.index0 * 0.1 }}s">
+                <div class="p-5">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <div class="w-8 h-8 rounded-md flex items-center justify-center" 
+                                 style="background-color: {{ role_config.theme.primary }}20">
+                                <i data-lucide="{{ stat.icon }}" 
+                                   class="h-4 w-4" 
+                                   style="color: {{ role_config.theme.primary }}"></i>
+                            </div>
+                        </div>
+                        <div class="ml-5 w-0 flex-1">
+                            <dl>
+                                <dt class="text-sm font-medium text-gray-500 truncate">
+                                    {{ stat.label }}
+                                </dt>
+                                <dd class="flex items-baseline">
+                                    <div class="text-2xl font-semibold text-gray-900">
+                                        {{ stat.value }}
+                                    </div>
+                                    {% if stat.change %}
+                                    <div class="ml-2 flex items-baseline text-sm font-semibold 
+                                                {% if stat.trend == 'up' %}text-green-600
+                                                {% elif stat.trend == 'down' %}text-red-600
+                                                {% else %}text-gray-500{% endif %}">
+                                        {% if stat.trend == 'up' %}
+                                        <i data-lucide="trending-up" class="h-3 w-3 mr-1"></i>
+                                        {% elif stat.trend == 'down' %}
+                                        <i data-lucide="trending-down" class="h-3 w-3 mr-1"></i>
+                                        {% else %}
+                                        <i data-lucide="minus" class="h-3 w-3 mr-1"></i>
+                                        {% endif %}
+                                        {{ stat.change }}
+                                    </div>
+                                    {% endif %}
+                                </dd>
+                            </dl>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    
+    <!-- Main dashboard grid -->
+    <div class="px-4 sm:px-0">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Primary content area -->
+            <div class="lg:col-span-2 space-y-6">
+                {% for widget in primary_widgets %}
+                <div class="bg-white shadow rounded-lg animate-slide-up" 
+                     style="animation-delay: {{ loop.index0 * 0.15 }}s">
+                    <div class="px-4 py-5 sm:p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg leading-6 font-medium text-gray-900">
+                                <i data-lucide="{{ widget.icon }}" class="h-5 w-5 inline mr-2"></i>
+                                {{ widget.title }}
+                            </h3>
+                            {% if widget.action %}
+                            <button class="text-sm text-gray-500 hover:text-gray-700 font-medium">
+                                {{ widget.action }}
+                            </button>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Widget content based on type -->
+                        {% if widget.type == 'table' %}
+                        <div class="overflow-hidden">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        {% for header in widget.headers %}
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            {{ header }}
+                                        </th>
+                                        {% endfor %}
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200">
+                                    {% for row in widget.data %}
+                                    <tr class="hover:bg-gray-50">
+                                        {% for cell in row %}
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                            {{ cell }}
+                                        </td>
+                                        {% endfor %}
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="{{ widget.headers|length }}" class="px-6 py-4 text-center text-gray-500">
+                                            <div class="flex flex-col items-center py-8">
+                                                <i data-lucide="{{ widget.empty_icon | default('database') }}" class="h-12 w-12 text-gray-300 mb-4"></i>
+                                                <p class="text-sm font-medium">{{ widget.empty_title | default('No data available') }}</p>
+                                                <p class="text-xs text-gray-400 mt-1">{{ widget.empty_description | default('Check back later for updates') }}</p>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        {% elif widget.type == 'chart' %}
+                        <div class="h-64 flex items-center justify-center bg-gray-50 rounded-lg">
+                            <div class="text-center">
+                                <i data-lucide="bar-chart-3" class="h-12 w-12 text-gray-300 mx-auto mb-4"></i>
+                                <p class="text-sm text-gray-500">Chart visualization coming soon</p>
+                            </div>
+                        </div>
+                        
+                        {% elif widget.type == 'list' %}
+                        <div class="space-y-3">
+                            {% for item in widget.data %}
+                            <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                                <div class="flex items-center">
+                                    <div class="w-8 h-8 rounded-full flex items-center justify-center" 
+                                         style="background-color: {{ item.color | default(role_config.theme.primary) }}20">
+                                        <i data-lucide="{{ item.icon }}" 
+                                           class="h-4 w-4" 
+                                           style="color: {{ item.color | default(role_config.theme.primary) }}"></i>
+                                    </div>
+                                    <div class="ml-3">
+                                        <p class="text-sm font-medium text-gray-900">{{ item.title }}</p>
+                                        {% if item.subtitle %}
+                                        <p class="text-xs text-gray-500">{{ item.subtitle }}</p>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                {% if item.badge %}
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ item.badge_class }}">
+                                    {{ item.badge }}
+                                </span>
+                                {% endif %}
+                            </div>
+                            {% empty %}
+                            <div class="text-center py-8">
+                                <i data-lucide="{{ widget.empty_icon | default('list') }}" class="h-12 w-12 text-gray-300 mx-auto mb-4"></i>
+                                <p class="text-sm font-medium text-gray-900">{{ widget.empty_title | default('No items found') }}</p>
+                                <p class="text-xs text-gray-500 mt-1">{{ widget.empty_description | default('Items will appear here when available') }}</p>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            
+            <!-- Sidebar -->
+            <div class="space-y-6">
+                {% for widget in sidebar_widgets %}
+                <div class="bg-white shadow rounded-lg animate-slide-up" 
+                     style="animation-delay: {{ loop.index0 * 0.2 }}s">
+                    <div class="px-4 py-5 sm:p-6">
+                        <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">
+                            <i data-lucide="{{ widget.icon }}" class="h-5 w-5 inline mr-2"></i>
+                            {{ widget.title }}
+                        </h3>
+                        
+                        {% if widget.type == 'activity' %}
+                        <div class="flow-root">
+                            <ul class="-mb-8">
+                                {% for activity in widget.data %}
+                                <li>
+                                    <div class="relative pb-8">
+                                        {% if not loop.last %}
+                                        <span class="absolute top-5 left-5 -ml-px h-full w-0.5 bg-gray-200" aria-hidden="true"></span>
+                                        {% endif %}
+                                        <div class="relative flex items-start space-x-3">
+                                            <div class="relative">
+                                                <div class="h-10 w-10 rounded-full flex items-center justify-center" 
+                                                     style="background-color: {{ activity.color | default(role_config.theme.primary) }}20">
+                                                    <i data-lucide="{{ activity.icon }}" 
+                                                       class="h-4 w-4" 
+                                                       style="color: {{ activity.color | default(role_config.theme.primary) }}"></i>
+                                                </div>
+                                            </div>
+                                            <div class="min-w-0 flex-1">
+                                                <div>
+                                                    <p class="text-sm text-gray-900">{{ activity.message }}</p>
+                                                    <div class="mt-1 text-xs text-gray-500">
+                                                        <time datetime="{{ activity.timestamp }}">{{ activity.time_ago }}</time>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </li>
+                                {% empty %}
+                                <li class="text-center py-8">
+                                    <i data-lucide="activity" class="h-12 w-12 text-gray-300 mx-auto mb-4"></i>
+                                    <p class="text-sm text-gray-500">No recent activity</p>
+                                </li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    // Dashboard-specific functionality
+    document.addEventListener('DOMContentLoaded', function() {
+        // Set role theme
+        setTheme('{{ user.role }}');
+        
+        // Initialize real-time updates (mock)
+        function updateStats() {
+            // Simulate real-time stat updates
+            const statElements = document.querySelectorAll('[data-stat]');
+            statElements.forEach(element => {
+                const currentValue = parseInt(element.textContent);
+                const variation = Math.floor(Math.random() * 5) - 2;
+                const newValue = Math.max(0, currentValue + variation);
+                
+                if (newValue !== currentValue) {
+                    element.textContent = newValue;
+                    element.classList.add('animate-bounce-gentle');
+                    setTimeout(() => {
+                        element.classList.remove('animate-bounce-gentle');
+                    }, 2000);
+                }
+            });
+        }
+        
+        // Update stats every 30 seconds
+        setInterval(updateStats, 30000);
+        
+        // Show welcome notification
+        setTimeout(() => {
+            showNotification('info', 'Welcome to your {{ role_config.name }} dashboard!');
+        }, 1000);
+    });
+    
+    // Search functionality
+    document.getElementById('search-input').addEventListener('input', function(e) {
+        const query = e.target.value.toLowerCase();
+        // Implement search logic here
+        console.log('Searching for:', query);
+    });
+</script>
+{% endblock %}

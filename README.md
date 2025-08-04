@@ -1,247 +1,190 @@
-# GA4 Admin Automation
+# GA4 사용자 권한 관리 자동화 시스템
 
-**Google Analytics 4 권한 관리 자동화 시스템**
+> Google Analytics Admin API를 활용한 현대적인 웹 기반 권한 관리 시스템
 
-사용자의 GA4 권한 신청부터 승인, 만료 관리까지 전체 워크플로우를 자동화하는 웹 기반 솔루션입니다.
+## 🎯 프로젝트 개요
 
-## 🎯 주요 기능
+GA4를 여러 고객사에 제공/관리하는 서비스 파트너사를 위한 자동화 시스템입니다.
+권한 신청부터 만료까지 전 과정을 자동화하여 운영 효율성과 보안을 극대화합니다.
 
-### ⚡ 자동 승인 시스템
-- **Viewer/Analyst 권한**: 신청 즉시 자동 승인 (60일)
-- **Editor/Administrator 권한**: 관리자 수동 승인 필요 (7일/90일)
+### 주요 기능
 
-### 📊 관리자 대시보드
-- 권한 통계 및 현황 모니터링
-- 승인 대기 목록 관리
-- 만료 예정 권한 추적
-- 권한 철회 및 연장 관리
+- **권한 신청/연장/만료/삭제 자동화**
+- **역할 기반 접근 제어 (RBAC)**
+  - Super Admin: 시스템 전체 관리
+  - Admin: 자신의 고객사 관리
+  - Requester: 권한 신청
+  - GA User: 권한 연장
+- **실시간 알림 시스템**
+- **완전한 감사 로그**
+- **이메일 기반 권한 연장**
 
-### 🔐 보안 및 감사
-- JWT 기반 인증 시스템
-- 역할 기반 접근 제어 (Admin/Requester)
-- 모든 작업에 대한 감사 로그
-- 중복 신청 방지
+### 기술 스택
 
-### 🔗 GA4 연동
-- Google Analytics Admin API 완전 연동
-- Service Account 기반 안전한 인증
-- 실시간 권한 부여/제거
-- 다중 고객사 지원
+#### Frontend
+- **Next.js 14+** (App Router)
+- **shadcn/ui** 컴포넌트
+- **TailwindCSS** 스타일링
+- **TypeScript** 타입 안전성
+- **Lucide React** 아이콘
+
+#### Backend
+- **FastAPI** (Python 3.11+)
+- **SQLAlchemy** ORM
+- **PostgreSQL** 데이터베이스
+- **JWT** 인증
+- **Google Analytics Admin API**
+
+#### DevOps
+- **Docker** 컨테이너화
+- **GitHub Actions** CI/CD
+- **AWS/GCP** 클라우드 배포
+
+## 🏗️ 프로젝트 구조
+
+```
+.
+├── frontend/          # Next.js 프론트엔드
+├── backend/           # FastAPI 백엔드
+├── shared/           # 공통 타입 정의
+├── docs/             # 프로젝트 문서
+├── scripts/          # 개발/배포 스크립트
+└── legacy-project/   # 이전 버전 참조용
+```
 
 ## 🚀 빠른 시작
 
-### 1. 설치
+### 사전 요구사항
 
+- Node.js 18+
+- Python 3.11+
+- PostgreSQL 14+ (또는 다른 호환 데이터베이스)
+
+### 환경 설정
+
+1. **백엔드 환경 설정**
 ```bash
-# 저장소 클론
-git clone <repository-url>
-cd ga4AdminAutomation
+cd backend
+cp .env.example .env
+# .env 파일을 수정하여 데이터베이스 및 기타 설정 구성
+```
 
-# 의존성 설치
+2. **데이터베이스 설정**
+```bash
+# PostgreSQL 데이터베이스 생성
+createdb ga4_admin_dev
+```
+
+### 설치 및 실행
+
+1. **백엔드 서버 실행**
+```bash
+cd backend
+python -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
 pip install -r requirements.txt
+uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-### 2. 환경 설정
-
-`.env` 파일을 생성하고 다음 환경 변수를 설정하세요:
-
-```env
-# Supabase 설정
-SUPABASE_URL=your_supabase_project_url
-SUPABASE_ANON_KEY=your_supabase_anon_key
-SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
-
-# JWT 설정
-JWT_SECRET_KEY=your_secret_key_here
-JWT_ALGORITHM=HS256
-JWT_ACCESS_TOKEN_EXPIRE_MINUTES=30
-
-# Google Analytics 설정
-GOOGLE_APPLICATION_CREDENTIALS=path/to/service-account-key.json
-GA4_TEST_MODE=true  # 개발 시에는 true로 설정
-```
-
-### 3. 데이터베이스 설정
-
-1. [Supabase](https://supabase.com)에서 새 프로젝트 생성
-2. `src/database/migration_001_initial_schema.sql` 실행
-3. `src/database/migration_002_permission_system.sql` 실행
-
-### 4. 서버 실행
-
+2. **프론트엔드 개발 서버 실행 (새 터미널)**
 ```bash
-# 개발 서버 시작
-python -m src.backend.main
-
-# 또는 uvicorn 직접 사용
-uvicorn src.backend.main:app --reload --host 0.0.0.0 --port 8000
+cd frontend
+npm install
+npm run dev
 ```
 
-### 5. API 문서 확인
+3. **접속**
+- **Frontend**: http://localhost:3000
+- **Backend API**: http://localhost:8000
+- **API Documentation**: http://localhost:8000/api/docs
 
-서버가 시작되면 다음 URL에서 API 문서를 확인할 수 있습니다:
-- **Swagger UI**: http://localhost:8000/docs
-- **ReDoc**: http://localhost:8000/redoc
+### 기본 계정 정보
 
-## 📋 API 엔드포인트
+시스템 테스트를 위한 기본 관리자 계정:
+- **이메일**: admin@example.com
+- **비밀번호**: admin123
 
-### 🔐 인증 (Authentication)
-```
-POST   /api/v1/auth/login          # 로그인
-GET    /api/v1/auth/profile        # 사용자 프로필
-GET    /api/v1/auth/verify-token   # 토큰 검증
-GET    /api/v1/auth/permissions    # 사용자 권한 확인
-```
+## 🏗️ 개발 현황
 
-### 🎫 권한 관리 (Permissions)
-```
-POST   /api/v1/permissions/request     # 권한 신청
-GET    /api/v1/permissions/pending     # 승인 대기 목록 (관리자)
-POST   /api/v1/permissions/approve     # 승인/거부 처리 (관리자)
-GET    /api/v1/permissions/expiring    # 만료 예정 권한 (관리자)
-GET    /api/v1/permissions/stats       # 권한 통계 (관리자)
-GET    /api/v1/permissions/active      # 활성 권한 목록 (관리자)
-POST   /api/v1/permissions/extend      # 권한 연장 요청
-DELETE /api/v1/permissions/{id}/revoke # 권한 철회 (관리자)
-```
+### ✅ 완료된 기능
+- **백엔드 API 구조**: FastAPI 기반 REST API 서버
+- **인증 시스템**: JWT 토큰 기반 인증/인가
+- **데이터베이스 모델**: PostgreSQL + SQLAlchemy 2.0
+- **프론트엔드 대시보드**: Next.js 14 + shadcn/ui
+- **사용자 관리**: CRUD 및 역할 관리
+- **반응형 UI**: 데스크톱 중심 반응형 디자인
+- **GA4 API 연동**: Google Analytics Admin API 완전 통합
+- **권한 관리 로직**: 실제 GA4 권한 부여/해제/연장
+- **이메일 알림 시스템**: SMTP 기반 자동 알림 완료
+- **감사 로그 시스템**: 모든 활동 추적 및 로깅 완료
 
-### 👤 사용자 관리 (Users)
-```
-GET    /api/v1/users                # 사용자 목록
-POST   /api/v1/users                # 사용자 생성
-GET    /api/v1/users/{id}           # 특정 사용자 조회
-```
+### 🎯 API 엔드포인트
 
-### 📊 관리자 (Admin)
-```
-GET    /api/v1/admin/dashboard      # 대시보드 통계
-GET    /api/v1/admin/users          # 사용자 관리
-POST   /api/v1/admin/users          # 사용자 생성
-GET    /api/v1/admin/stats          # 시스템 통계
-```
+**인증 (`/api/auth`)**:
+- `POST /register` - 사용자 등록
+- `POST /login` - 로그인
+- `POST /refresh` - 토큰 갱신
+- `GET /me` - 현재 사용자 정보
 
-### 🔗 GA4 연동 (GA4 Integration)
-```
-GET    /api/v1/ga4/test-connection  # 연결 테스트
-POST   /api/v1/ga4/register-user    # 사용자 등록
-DELETE /api/v1/ga4/remove-user      # 사용자 제거
-GET    /api/v1/ga4/list-users       # 사용자 목록
-```
+**사용자 관리 (`/api/users`)**:
+- `GET /` - 사용자 목록
+- `GET /{user_id}` - 사용자 조회
+- `PUT /{user_id}` - 사용자 수정
+- `DELETE /{user_id}` - 사용자 삭제
 
-## 🗃️ 데이터베이스 스키마
+**권한 관리 (`/api/permissions`)**:
+- `POST /` - 권한 요청 생성
+- `GET /` - 권한 요청 목록
+- `GET /{grant_id}` - 권한 요청 조회
+- `POST /{grant_id}/approve` - 권한 승인
+- `POST /{grant_id}/reject` - 권한 거절
+- `POST /{grant_id}/revoke` - 권한 해제
+- `POST /{grant_id}/extend` - 권한 연장
 
-### 핵심 테이블
+**GA4 연동 (`/api/ga4`)**:
+- `GET /accounts` - GA4 계정 목록
+- `GET /accounts/{account_name}/properties` - 속성 목록
+- `GET /properties/{property_name}/users` - 속성 사용자 목록
+- `POST /properties/{property_name}/validate` - 속성 접근 검증
 
-- **`website_users`**: 사용자 정보 및 역할 관리
-- **`clients`**: 고객사 정보
-- **`service_accounts`**: Google Service Account 정보
-- **`permission_grants`**: 권한 부여 현황 (핵심 테이블)
-- **`audit_logs`**: 모든 작업에 대한 감사 로그
+**알림 (`/api/notifications`)**:
+- `POST /test` - 테스트 알림 발송
+- `POST /daily-summary` - 일일 요약 발송
+- `GET /settings` - 알림 설정 조회
 
-### 주요 관계
+**감사 로그 (`/api/audit`)**:
+- `GET /` - 감사 로그 목록
+- `GET /recent` - 최근 활동
+- `GET /summary` - 활동 요약 통계
+- `GET /count` - 로그 수 조회
 
-```
-website_users (1) ←→ (N) permission_grants ←→ (1) clients
-                              ↓
-                         audit_logs
-```
+### 📋 향후 계획
+- **실시간 알림**: WebSocket 기반 실시간 업데이트
+- **대시보드 차트**: 시각화 및 통계 차트
+- **성능 모니터링**: 시스템 메트릭 수집
+- **보안 강화**: 2FA, IP 제한 등
+- **자동 만료 관리**: 스케줄러 기반 권한 만료 처리
+- **비밀번호 재설정**: 이메일 기반 비밀번호 재설정 UI
 
-## 🔄 권한 워크플로우
+## 📖 문서
 
-### 자동 승인 (Viewer/Analyst)
-1. 사용자가 권한 신청
-2. 시스템이 자동으로 승인 여부 판단
-3. GA4 API를 통해 즉시 권한 부여
-4. 60일 후 자동 만료 설정
+- [사용자 가이드](./docs/user-guide.md)
+- [개발자 가이드](./docs/developer-guide.md)
+- [API 문서](./docs/api-reference.md)
+- [배포 가이드](./docs/deployment.md)
 
-### 수동 승인 (Editor/Administrator)
-1. 사용자가 권한 신청
-2. 관리자에게 승인 요청 알림
-3. 관리자가 승인/거부 결정
-4. 승인 시 GA4 API를 통해 권한 부여
-5. 설정된 기간 후 만료
+## 🤝 기여
 
-## 🛠️ 개발 가이드
+1. Fork the repository
+2. Create feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit changes (`git commit -m 'Add amazing feature'`)
+4. Push to branch (`git push origin feature/amazing-feature`)
+5. Open Pull Request
 
-### 프로젝트 구조
+## 📄 라이센스
 
-```
-src/
-├── backend/
-│   ├── api/routers/         # API 라우터
-│   ├── core/               # 핵심 설정 및 미들웨어
-│   ├── models/             # Pydantic 모델
-│   └── services/           # 비즈니스 로직
-├── database/               # 데이터베이스 마이그레이션
-└── tests/                  # 테스트 파일
-```
+이 프로젝트는 MIT 라이센스 하에 배포됩니다. 자세한 내용은 [LICENSE](LICENSE) 파일을 참조하세요.
 
-### 개발 원칙
+## 📞 지원
 
-- **SOLID 원칙** 준수
-- **Clean Architecture** 적용
-- **TDD(Test-Driven Development)** 권장
-- 코드 500줄 초과 시 리팩토링
-
-### 코드 품질
-
-```bash
-# 포맷팅
-black src/
-isort src/
-
-# 테스트 실행
-pytest src/tests/
-
-# 타입 체크
-mypy src/
-```
-
-## 📊 시스템 요구사항
-
-### 최소 요구사항
-- Python 3.11+
-- 메모리: 512MB 이상
-- 디스크: 1GB 이상
-
-### 권장 요구사항
-- Python 3.11+
-- 메모리: 2GB 이상
-- 디스크: 5GB 이상
-
-## 🔧 환경별 설정
-
-### 개발 환경
-```env
-DEBUG=true
-GA4_TEST_MODE=true
-LOG_LEVEL=DEBUG
-```
-
-### 프로덕션 환경
-```env
-DEBUG=false
-GA4_TEST_MODE=false
-LOG_LEVEL=INFO
-```
-
-## 🤝 기여하기
-
-1. Fork 저장소
-2. 새 기능 브랜치 생성 (`git checkout -b feature/amazing-feature`)
-3. 변경사항 커밋 (`git commit -m 'Add amazing feature'`)
-4. 브랜치에 Push (`git push origin feature/amazing-feature`)
-5. Pull Request 생성
-
-## 📜 라이선스
-
-이 프로젝트는 MIT 라이선스 하에 배포됩니다. 자세한 내용은 `LICENSE` 파일을 참조하세요.
-
-## 🆘 지원
-
-문제가 발생하거나 질문이 있으면 [Issues](../../issues)에 등록해 주세요.
-
----
-
-**개발팀**: GA4 Admin Automation Team  
-**마지막 업데이트**: 2025년 7월 1일 
+문제가 있거나 질문이 있으시면 [Issues](../../issues)를 통해 연락주세요.

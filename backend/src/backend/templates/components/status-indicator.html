@@ -1,0 +1,312 @@
+<!-- Status Indicator Component -->
+<!-- Usage: {% include 'components/status-indicator.html' with status='approved' message='Request approved' %} -->
+
+{% set status_config = {
+    'pending': {
+        'color': '#f59e0b',
+        'bg': '#fef3c7',
+        'border': '#fbbf24',
+        'icon': 'clock',
+        'pulse': true,
+        'aria_label': 'Status: Pending review'
+    },
+    'approved': {
+        'color': '#059669',
+        'bg': '#d1fae5', 
+        'border': '#10b981',
+        'icon': 'check-circle',
+        'pulse': false,
+        'aria_label': 'Status: Approved'
+    },
+    'rejected': {
+        'color': '#dc2626',
+        'bg': '#fee2e2',
+        'border': '#ef4444', 
+        'icon': 'x-circle',
+        'pulse': false,
+        'aria_label': 'Status: Rejected'
+    },
+    'active': {
+        'color': '#2563eb',
+        'bg': '#dbeafe',
+        'border': '#3b82f6',
+        'icon': 'check-circle',
+        'pulse': true,
+        'aria_label': 'Status: Active'
+    },
+    'inactive': {
+        'color': '#6b7280',
+        'bg': '#f3f4f6',
+        'border': '#9ca3af',
+        'icon': 'minus-circle',
+        'pulse': false,
+        'aria_label': 'Status: Inactive'
+    },
+    'processing': {
+        'color': '#7c3aed',
+        'bg': '#f3e8ff',
+        'border': '#8b5cf6',
+        'icon': 'loader',
+        'pulse': true,
+        'spin': true,
+        'aria_label': 'Status: Processing'
+    },
+    'error': {
+        'color': '#dc2626',
+        'bg': '#fee2e2',
+        'border': '#ef4444',
+        'icon': 'alert-circle',
+        'pulse': true,
+        'aria_label': 'Status: Error occurred'
+    }
+} %}
+
+{% set config = status_config[status] if status in status_config else status_config['inactive'] %}
+
+<div class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border"
+     style="background-color: {{ config.bg }}; color: {{ config.color }}; border-color: {{ config.border }}"
+     role="status"
+     aria-label="{{ config.aria_label }}{% if message %}: {{ message }}{% endif %}">
+    
+    <!-- Icon with conditional animations -->
+    <i data-lucide="{{ config.icon }}" 
+       class="h-4 w-4 mr-2 
+              {% if config.pulse %}animate-pulse{% endif %}
+              {% if config.spin %}animate-spin{% endif %}"
+       style="color: {{ config.color }}"
+       aria-hidden="true"></i>
+    
+    <!-- Status text -->
+    <span class="capitalize">{{ status | replace('_', ' ') }}</span>
+    
+    <!-- Optional message -->
+    {% if message %}
+    <span class="ml-1 font-normal opacity-75">- {{ message }}</span>
+    {% endif %}
+    
+    <!-- Progress indicator for processing states -->
+    {% if status == 'processing' %}
+    <div class="ml-2 flex space-x-1" aria-hidden="true">
+        <div class="h-1 w-1 rounded-full animate-bounce" style="background-color: {{ config.color }}; animation-delay: 0s;"></div>
+        <div class="h-1 w-1 rounded-full animate-bounce" style="background-color: {{ config.color }}; animation-delay: 0.1s;"></div>
+        <div class="h-1 w-1 rounded-full animate-bounce" style="background-color: {{ config.color }}; animation-delay: 0.2s;"></div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Large Status Indicator Variant -->
+<!-- Usage: {% include 'components/status-indicator.html' with status='approved' message='Request approved' size='large' %} -->
+
+{% if size == 'large' %}
+<div class="inline-flex items-center px-4 py-2 rounded-lg text-base font-medium border shadow-sm"
+     style="background-color: {{ config.bg }}; color: {{ config.color }}; border-color: {{ config.border }}"
+     role="status"
+     aria-label="{{ config.aria_label }}{% if message %}: {{ message }}{% endif %}">
+    
+    <div class="flex-shrink-0">
+        <i data-lucide="{{ config.icon }}" 
+           class="h-5 w-5 
+                  {% if config.pulse %}animate-pulse{% endif %}
+                  {% if config.spin %}animate-spin{% endif %}"
+           style="color: {{ config.color }}"
+           aria-hidden="true"></i>
+    </div>
+    
+    <div class="ml-3">
+        <p class="text-sm font-semibold capitalize">{{ status | replace('_', ' ') }}</p>
+        {% if message %}
+        <p class="text-xs opacity-75">{{ message }}</p>
+        {% endif %}
+    </div>
+    
+    {% if status == 'processing' %}
+    <div class="ml-4 flex space-x-1" aria-hidden="true">
+        <div class="h-2 w-2 rounded-full animate-bounce" style="background-color: {{ config.color }}; animation-delay: 0s;"></div>
+        <div class="h-2 w-2 rounded-full animate-bounce" style="background-color: {{ config.color }}; animation-delay: 0.1s;"></div>
+        <div class="h-2 w-2 rounded-full animate-bounce" style="background-color: {{ config.color }}; animation-delay: 0.2s;"></div>
+    </div>
+    {% endif %}
+</div>
+{% endif %}
+
+<!-- Progress Bar Status Variant -->
+<!-- Usage: {% include 'components/status-indicator.html' with status='processing' progress=65 %} -->
+
+{% if progress is defined %}
+<div class="w-full">
+    <div class="flex items-center justify-between mb-1">
+        <span class="text-sm font-medium" style="color: {{ config.color }}">
+            <i data-lucide="{{ config.icon }}" 
+               class="h-4 w-4 inline mr-1 
+                      {% if config.pulse %}animate-pulse{% endif %}
+                      {% if config.spin %}animate-spin{% endif %}"
+               aria-hidden="true"></i>
+            {{ status | replace('_', ' ') | title }}
+        </span>
+        <span class="text-sm font-medium" style="color: {{ config.color }}">
+            {{ progress }}%
+        </span>
+    </div>
+    
+    <div class="w-full bg-gray-200 rounded-full h-2">
+        <div class="h-2 rounded-full transition-all duration-500 ease-out"
+             style="width: {{ progress }}%; background-color: {{ config.color }}"
+             role="progressbar"
+             aria-valuenow="{{ progress }}"
+             aria-valuemin="0"
+             aria-valuemax="100"
+             aria-label="{{ status | replace('_', ' ') | title }} progress: {{ progress }}%">
+        </div>
+    </div>
+    
+    {% if message %}
+    <p class="text-xs text-gray-500 mt-1">{{ message }}</p>
+    {% endif %}
+</div>
+{% endif %}
+
+<!-- Compact Status Dot Variant -->
+<!-- Usage: {% include 'components/status-indicator.html' with status='active' compact=true %} -->
+
+{% if compact %}
+<div class="inline-flex items-center" 
+     role="status"
+     aria-label="{{ config.aria_label }}">
+    <div class="h-2 w-2 rounded-full mr-2 
+                {% if config.pulse %}animate-pulse{% endif %}"
+         style="background-color: {{ config.color }}"
+         aria-hidden="true"></div>
+    <span class="text-sm text-gray-600 capitalize">{{ status | replace('_', ' ') }}</span>
+</div>
+{% endif %}
+
+<script>
+// Enhanced status indicator functionality
+GA4Admin.components.register('statusIndicator', function(options) {
+    const {
+        element,
+        status,
+        autoUpdate = false,
+        updateInterval = 30000,
+        onStatusChange
+    } = options;
+    
+    const component = {
+        element,
+        status,
+        
+        updateStatus(newStatus, message) {
+            this.status = newStatus;
+            
+            // Find all status indicators in element
+            const indicators = element.querySelectorAll('[role="status"]');
+            indicators.forEach(indicator => {
+                // Update classes and styles based on new status
+                this.applyStatusStyles(indicator, newStatus);
+            });
+            
+            // Update ARIA labels
+            this.updateAriaLabels(newStatus, message);
+            
+            // Trigger callback
+            if (onStatusChange) {
+                onStatusChange(newStatus, message);
+            }
+            
+            // Announce to screen readers
+            GA4Admin.theme.announceToScreenReader(
+                `Status updated to ${newStatus.replace('_', ' ')}${message ? ': ' + message : ''}`
+            );
+        },
+        
+        applyStatusStyles(indicator, status) {
+            // This would contain the logic to update styles
+            // based on the status configuration
+        },
+        
+        updateAriaLabels(status, message) {
+            const statusConfig = {
+                'pending': 'Status: Pending review',
+                'approved': 'Status: Approved',
+                'rejected': 'Status: Rejected',
+                'active': 'Status: Active',
+                'inactive': 'Status: Inactive',
+                'processing': 'Status: Processing',
+                'error': 'Status: Error occurred'
+            };
+            
+            const indicators = element.querySelectorAll('[role="status"]');
+            indicators.forEach(indicator => {
+                const ariaLabel = statusConfig[status] + (message ? ': ' + message : '');
+                indicator.setAttribute('aria-label', ariaLabel);
+            });
+        },
+        
+        startAutoUpdate() {
+            if (!autoUpdate) return;
+            
+            setInterval(async () => {
+                try {
+                    // Fetch status update from API
+                    const response = await GA4Admin.data.fetch(`/status/${element.dataset.statusId}`);
+                    if (response.status !== this.status) {
+                        this.updateStatus(response.status, response.message);
+                    }
+                } catch (error) {
+                    console.error('Failed to update status:', error);
+                }
+            }, updateInterval);
+        },
+        
+        destroy() {
+            // Cleanup any intervals or event listeners
+        }
+    };
+    
+    // Initialize auto-update if enabled
+    component.startAutoUpdate();
+    
+    return component;
+});
+</script>
+
+<style>
+/* Status indicator specific styles */
+.status-indicator {
+    transition: all 0.2s ease-in-out;
+}
+
+.status-indicator:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Custom animations for status indicators */
+@keyframes statusPulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+
+.animate-status-pulse {
+    animation: statusPulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .status-indicator {
+        border-width: 2px;
+        font-weight: 600;
+    }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+    .status-indicator * {
+        animation: none !important;
+    }
+}
+</style>

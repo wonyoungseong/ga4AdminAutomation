@@ -1,0 +1,339 @@
+<!-- Mobile Navigation Component -->
+<!-- Usage: {% include 'components/mobile-nav.html' with user=user role_config=role_config %} -->
+
+<div id="mobile-nav" class="lg:hidden">
+    <!-- Mobile menu button -->
+    <button type="button" 
+            id="mobile-menu-button"
+            class="fixed top-4 left-4 z-50 p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-{{ role_config.theme.primary | default('#2563EB') }}"
+            onclick="GA4Admin.mobile.toggleMenu()"
+            aria-controls="mobile-menu" 
+            aria-expanded="false"
+            aria-label="Open main menu">
+        <span class="sr-only">Open main menu</span>
+        <i data-lucide="menu" class="h-6 w-6 menu-icon"></i>
+        <i data-lucide="x" class="h-6 w-6 close-icon hidden"></i>
+    </button>
+    
+    <!-- Mobile menu overlay -->
+    <div id="mobile-menu-overlay" 
+         class="fixed inset-0 bg-black bg-opacity-25 z-40 hidden"
+         onclick="GA4Admin.mobile.closeMenu()"
+         aria-hidden="true"></div>
+    
+    <!-- Mobile menu panel -->
+    <nav id="mobile-menu" 
+         class="fixed inset-y-0 left-0 z-50 w-80 bg-white shadow-xl transform -translate-x-full transition-transform duration-300 ease-in-out"
+         aria-label="Mobile navigation">
+        
+        <!-- Header -->
+        <div class="flex items-center justify-between h-16 px-4 border-b border-gray-200 bg-gray-50">
+            <div class="flex items-center">
+                <div class="h-8 w-8 bg-gradient-to-br role-{{ user.role | default('viewer') }} rounded-lg flex items-center justify-center">
+                    <i data-lucide="{{ role_config.icon | lower | default('eye') }}" class="h-5 w-5 text-white"></i>
+                </div>
+                <span class="ml-2 text-lg font-semibold text-gray-900">
+                    GA4 Admin
+                </span>
+            </div>
+            <button onclick="GA4Admin.mobile.closeMenu()" 
+                    class="p-2 rounded-md text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500"
+                    aria-label="Close menu">
+                <i data-lucide="x" class="h-5 w-5"></i>
+            </button>
+        </div>
+        
+        <!-- User info -->
+        <div class="px-4 py-3 border-b border-gray-200">
+            <div class="flex items-center">
+                <img class="h-10 w-10 rounded-full" 
+                     src="{{ user.avatar_url | default('https://www.gravatar.com/avatar/?d=identicon') }}" 
+                     alt="{{ user.name | default('User') }}">
+                <div class="ml-3">
+                    <p class="text-sm font-medium text-gray-900">{{ user.name | default(user.email) }}</p>
+                    <p class="text-xs text-gray-500">{{ role_config.name | default('Viewer') }}</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Navigation links -->
+        <div class="flex-1 px-2 py-4 space-y-1 overflow-y-auto">
+            <!-- Dashboard -->
+            <a href="/dashboard" 
+               class="group flex items-center px-2 py-2 text-base font-medium rounded-md text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors touch-target"
+               onclick="GA4Admin.mobile.closeMenu()">
+                <i data-lucide="layout-dashboard" class="mr-3 h-5 w-5 text-gray-400 group-hover:text-gray-500"></i>
+                Dashboard
+            </a>
+            
+            <!-- Users (Admin only) -->
+            {% if user.role in ['super_admin', 'admin'] %}
+            <a href="/users" 
+               class="group flex items-center px-2 py-2 text-base font-medium rounded-md text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors touch-target"
+               onclick="GA4Admin.mobile.closeMenu()">
+                <i data-lucide="users" class="mr-3 h-5 w-5 text-gray-400 group-hover:text-gray-500"></i>
+                Users
+                <span class="ml-auto inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
+                    Admin
+                </span>
+            </a>
+            {% endif %}
+            
+            <!-- Permissions -->
+            <a href="/permissions" 
+               class="group flex items-center px-2 py-2 text-base font-medium rounded-md text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors touch-target"
+               onclick="GA4Admin.mobile.closeMenu()">
+                <i data-lucide="lock" class="mr-3 h-5 w-5 text-gray-400 group-hover:text-gray-500"></i>
+                Permissions
+            </a>
+            
+            <!-- Clients -->
+            <a href="/clients" 
+               class="group flex items-center px-2 py-2 text-base font-medium rounded-md text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors touch-target"
+               onclick="GA4Admin.mobile.closeMenu()">
+                <i data-lucide="building" class="mr-3 h-5 w-5 text-gray-400 group-hover:text-gray-500"></i>
+                Clients
+            </a>
+            
+            <!-- Analytics -->
+            <a href="/analytics" 
+               class="group flex items-center px-2 py-2 text-base font-medium rounded-md text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors touch-target"
+               onclick="GA4Admin.mobile.closeMenu()">
+                <i data-lucide="bar-chart-3" class="mr-3 h-5 w-5 text-gray-400 group-hover:text-gray-500"></i>
+                Analytics
+            </a>
+            
+            <!-- Divider -->
+            <div class="border-t border-gray-200 my-4"></div>
+            
+            <!-- Role-specific quick actions -->
+            {% if user.role == 'requester' %}
+            <div class="px-2 py-2">
+                <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Quick Actions</p>
+                <button class="w-full group flex items-center px-2 py-2 text-sm font-medium rounded-md text-white bg-gradient-to-r role-gradient hover:opacity-90 transition-opacity touch-target"
+                        onclick="GA4Admin.mobile.closeMenu(); GA4Admin.components.create('requestModal', {})">
+                    <i data-lucide="plus" class="mr-2 h-4 w-4"></i>
+                    New Request
+                </button>
+            </div>
+            {% elif user.role in ['admin', 'super_admin'] %}
+            <div class="px-2 py-2">
+                <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Admin Tools</p>
+                <a href="/admin/users/new" 
+                   class="group flex items-center px-2 py-2 text-sm font-medium rounded-md text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors touch-target"
+                   onclick="GA4Admin.mobile.closeMenu()">
+                    <i data-lucide="user-plus" class="mr-2 h-4 w-4 text-gray-400 group-hover:text-gray-500"></i>
+                    Add User
+                </a>
+                <a href="/admin/reports" 
+                   class="group flex items-center px-2 py-2 text-sm font-medium rounded-md text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors touch-target"
+                   onclick="GA4Admin.mobile.closeMenu()">
+                    <i data-lucide="file-text" class="mr-2 h-4 w-4 text-gray-400 group-hover:text-gray-500"></i>
+                    Reports
+                </a>
+            </div>
+            {% endif %}
+        </div>
+        
+        <!-- Footer -->
+        <div class="border-t border-gray-200 p-4">
+            <div class="space-y-2">
+                <!-- Profile -->
+                <a href="/profile" 
+                   class="group flex items-center px-2 py-2 text-sm font-medium rounded-md text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors touch-target"
+                   onclick="GA4Admin.mobile.closeMenu()">
+                    <i data-lucide="user" class="mr-3 h-4 w-4 text-gray-400 group-hover:text-gray-500"></i>
+                    Profile Settings
+                </a>
+                
+                <!-- Help -->
+                <button class="w-full group flex items-center px-2 py-2 text-sm font-medium rounded-md text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors touch-target"
+                        onclick="GA4Admin.mobile.closeMenu(); GA4Admin.notifications.show('info', 'Help system coming soon!')">
+                    <i data-lucide="help-circle" class="mr-3 h-4 w-4 text-gray-400 group-hover:text-gray-500"></i>
+                    Help & Support
+                </button>
+                
+                <!-- Logout -->
+                <button class="w-full group flex items-center px-2 py-2 text-sm font-medium rounded-md text-red-600 hover:bg-red-50 hover:text-red-700 transition-colors touch-target"
+                        onclick="GA4Admin.mobile.closeMenu(); GA4Admin.auth.logout()">
+                    <i data-lucide="log-out" class="mr-3 h-4 w-4 text-red-500 group-hover:text-red-600"></i>
+                    Sign Out
+                </button>
+            </div>
+        </div>
+    </nav>
+</div>
+
+<!-- JavaScript for mobile navigation -->
+<script>
+// Extend GA4Admin with mobile navigation functionality
+GA4Admin.mobile = GA4Admin.mobile || {};
+
+GA4Admin.mobile.toggleMenu = function() {
+    const menu = document.getElementById('mobile-menu');
+    const overlay = document.getElementById('mobile-menu-overlay');
+    const button = document.getElementById('mobile-menu-button');
+    const menuIcon = button.querySelector('.menu-icon');
+    const closeIcon = button.querySelector('.close-icon');
+    
+    const isOpen = menu.classList.contains('translate-x-0');
+    
+    if (isOpen) {
+        this.closeMenu();
+    } else {
+        this.openMenu();
+    }
+};
+
+GA4Admin.mobile.openMenu = function() {
+    const menu = document.getElementById('mobile-menu');
+    const overlay = document.getElementById('mobile-menu-overlay');
+    const button = document.getElementById('mobile-menu-button');
+    const menuIcon = button.querySelector('.menu-icon');
+    const closeIcon = button.querySelector('.close-icon');
+    
+    // Show overlay
+    overlay.classList.remove('hidden');
+    overlay.classList.add('opacity-0');
+    
+    // Animate overlay
+    requestAnimationFrame(() => {
+        overlay.classList.remove('opacity-0');
+    });
+    
+    // Slide in menu
+    menu.classList.remove('-translate-x-full');
+    menu.classList.add('translate-x-0');
+    
+    // Update button icons
+    menuIcon.classList.add('hidden');
+    closeIcon.classList.remove('hidden');
+    
+    // Update ARIA
+    button.setAttribute('aria-expanded', 'true');
+    menu.setAttribute('aria-hidden', 'false');
+    
+    // Focus first interactive element
+    const firstFocusable = menu.querySelector('button, a');
+    if (firstFocusable) {
+        setTimeout(() => firstFocusable.focus(), 300);
+    }
+    
+    // Prevent body scroll
+    document.body.style.overflow = 'hidden';
+    
+    // Announce to screen readers
+    GA4Admin.theme.announceToScreenReader('Mobile menu opened');
+};
+
+GA4Admin.mobile.closeMenu = function() {
+    const menu = document.getElementById('mobile-menu');
+    const overlay = document.getElementById('mobile-menu-overlay');
+    const button = document.getElementById('mobile-menu-button');
+    const menuIcon = button.querySelector('.menu-icon');
+    const closeIcon = button.querySelector('.close-icon');
+    
+    // Slide out menu
+    menu.classList.remove('translate-x-0');
+    menu.classList.add('-translate-x-full');
+    
+    // Hide overlay
+    overlay.classList.add('opacity-0');
+    setTimeout(() => {
+        overlay.classList.add('hidden');
+    }, 300);
+    
+    // Update button icons
+    menuIcon.classList.remove('hidden');
+    closeIcon.classList.add('hidden');
+    
+    // Update ARIA
+    button.setAttribute('aria-expanded', 'false');
+    menu.setAttribute('aria-hidden', 'true');
+    
+    // Restore body scroll
+    document.body.style.overflow = '';
+    
+    // Return focus to menu button
+    button.focus();
+    
+    // Announce to screen readers
+    GA4Admin.theme.announceToScreenReader('Mobile menu closed');
+};
+
+// Handle escape key
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        const menu = document.getElementById('mobile-menu');
+        if (menu && menu.classList.contains('translate-x-0')) {
+            GA4Admin.mobile.closeMenu();
+        }
+    }
+});
+
+// Handle window resize
+window.addEventListener('resize', () => {
+    if (window.innerWidth >= 1024) { // lg breakpoint
+        GA4Admin.mobile.closeMenu();
+    }
+});
+
+// Touch gestures for mobile menu
+document.addEventListener('DOMContentLoaded', () => {
+    const menu = document.getElementById('mobile-menu');
+    if (menu && GA4Admin.mobile.isMobile()) {
+        GA4Admin.mobile.addTouchSupport(menu, {
+            onSwipe: (direction) => {
+                if (direction === 'left') {
+                    GA4Admin.mobile.closeMenu();
+                }
+            }
+        });
+    }
+});
+</script>
+
+<style>
+/* Mobile menu specific styles */
+#mobile-nav {
+    /* Ensure proper z-index stacking */
+}
+
+#mobile-menu {
+    /* Add backdrop blur for modern look */
+    backdrop-filter: blur(10px);
+}
+
+/* Touch target optimization */
+@media (hover: none) and (pointer: coarse) {
+    #mobile-nav .touch-target {
+        min-height: 44px;
+        min-width: 44px;
+        padding: 12px 16px;
+    }
+}
+
+/* Smooth transitions */
+#mobile-menu-overlay {
+    transition: opacity 0.3s ease-in-out;
+}
+
+/* Focus styles for mobile */
+#mobile-nav button:focus,
+#mobile-nav a:focus {
+    outline: 2px solid var(--role-primary, #2563EB);
+    outline-offset: 2px;
+    border-radius: 4px;
+}
+
+/* Animation improvements */
+@media (prefers-reduced-motion: reduce) {
+    #mobile-menu {
+        transition-duration: 0.01ms;
+    }
+    
+    #mobile-menu-overlay {
+        transition-duration: 0.01ms;
+    }
+}
+</style>

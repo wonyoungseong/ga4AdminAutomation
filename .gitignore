@@ -1,41 +1,92 @@
 # Environment variables
 .env
+.env.local
+.env.production
+.env.development
 
 # Python cache
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
+.Python
 
-# Playwright reports
-/playwright-report/
-/test-results/
-
-# Playwright user data
-/playwright_user_data/
-
-# Google API credentials and tokens
-credentials.json
-token.pickle 
+# Database files
+*.db
+*.sqlite
+*.sqlite3
 
 # Logs
-logs
+logs/
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 dev-debug.log
+backend.log
+backend_legacy.log
+frontend.log
+
+# Development and test files
+deprecated/
+legacy-project/
+test_*.py
+*_test.py
+test_*.json
+screenshots/
+playwright_user_data/
+
+# Playwright reports
+/playwright-report/
+/test-results/
+
+# Google API credentials and tokens
+credentials.json
+token.pickle
+config/*.json
+ga4-*.json
+
 # Dependency directories
 node_modules/
+.next/
+out/
+build/
+dist/
+
+# Python virtual environment
+venv/
+env/
+.venv/
+
 # Editor directories and files
-.idea
-.vscode
+.idea/
+.vscode/
+.cursor/
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
+
 # OS specific
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
 
-# Task files
-# tasks.json
-# tasks/ 
+# Temporary files
+*.tmp
+*.temp
+temp/
+tmp/
+
+# Coverage reports
+htmlcov/
+.coverage
+.pytest_cache/
+
+# Documentation build
+docs/_build/ 

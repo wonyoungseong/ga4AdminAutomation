@@ -1,0 +1,70 @@
+{
+  "test_info": {
+    "timestamp": "2025-08-04T00:29:13.016356",
+    "total_tests": 7,
+    "passed": 1,
+    "failed": 6,
+    "warnings": 0
+  },
+  "test_results": [
+    {
+      "timestamp": "2025-08-04T00:29:13.009411",
+      "category": "HEALTH",
+      "test_name": "서버 상태 확인",
+      "status": "PASS",
+      "details": "서버가 정상적으로 실행 중",
+      "response_data": {
+        "status": "healthy",
+        "message": "Backend server is running"
+      }
+    },
+    {
+      "timestamp": "2025-08-04T00:29:13.010716",
+      "category": "AUTH",
+      "test_name": "super_admin 로그인",
+      "status": "FAIL",
+      "details": "admin@example.com 로그인 실패",
+      "response_data": null
+    },
+    {
+      "timestamp": "2025-08-04T00:29:13.011784",
+      "category": "AUTH",
+      "test_name": "admin 로그인",
+      "status": "FAIL",
+      "details": "manager@example.com 로그인 실패",
+      "response_data": null
+    },
+    {
+      "timestamp": "2025-08-04T00:29:13.013022",
+      "category": "AUTH",
+      "test_name": "requester 로그인",
+      "status": "FAIL",
+      "details": "user@example.com 로그인 실패",
+      "response_data": null
+    },
+    {
+      "timestamp": "2025-08-04T00:29:13.014233",
+      "category": "AUTH",
+      "test_name": "viewer 로그인",
+      "status": "FAIL",
+      "details": "viewer@example.com 로그인 실패",
+      "response_data": null
+    },
+    {
+      "timestamp": "2025-08-04T00:29:13.015312",
+      "category": "AUTH",
+      "test_name": "잘못된 비밀번호",
+      "status": "FAIL",
+      "details": "잘못된 비밀번호 검증 실패",
+      "response_data": null
+    },
+    {
+      "timestamp": "2025-08-04T00:29:13.016288",
+      "category": "AUTH",
+      "test_name": "존재하지 않는 계정",
+      "status": "FAIL",
+      "details": "존재하지 않는 계정 검증 실패",
+      "response_data": null
+    }
+  ]
+}

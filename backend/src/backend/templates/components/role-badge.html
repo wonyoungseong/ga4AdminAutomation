@@ -1,0 +1,23 @@
+
+
+<!-- Role Badge with Animation Component -->
+<!-- Usage: {% include 'components/role-badge.html' with role=user.role role_config=role_config size='default' animated=true %} -->
+
+{% if animated %}
+<span class="inline-flex items-center {{ size_class }} rounded-full font-medium animate-pulse"
+      style="background: linear-gradient(45deg, {{ role_config.theme.primary }}20, {{ role_config.theme.secondary }}20); color: {{ role_config.theme.primary }}"
+      role="img"
+      aria-label="User role: {{ role_config.name }} (active)">
+    <i data-lucide="{{ role_config.icon | lower }}" 
+       class="{% if size == 'sm' %}h-3 w-3{% elif size == 'lg' %}h-5 w-5{% else %}h-4 w-4{% endif %} mr-1 animate-bounce-gentle"
+       aria-hidden="true"></i>
+    {{ role_config.name }}
+    
+    <!-- Active indicator -->
+    <div class="ml-2 h-2 w-2 rounded-full animate-pulse"
+         style="background-color: {{ role_config.theme.primary }}"
+         aria-hidden="true"></div>
+    
+    <span class="sr-only">Active session</span>
+</span>
+{% endif %}

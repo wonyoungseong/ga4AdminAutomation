@@ -1,0 +1,164 @@
+{
+  "permissions_api_access": {
+    "super_admin": {
+      "status_code": 200,
+      "expected": "200 (모든 권한 요청 조회)",
+      "actual": "200 - SUCCESS",
+      "response_preview": "[{\"id\":1,\"requester_email\":\"user@example.com\",\"requester_name\":\"이사용자\",\"client_name\":\"ABC 회사\",\"properties\":[{\"property_id\":\"GA_123456789\",\"property_name\":\"ABC 웹사이트\",\"current_permission\":\"None\",\"request"
+    },
+    "requester": {
+      "status_code": 200,
+      "expected": "200 (본인 권한 요청만 조회)",
+      "actual": "200 - SUCCESS",
+      "response_preview": "[{\"id\":1,\"requester_email\":\"user@example.com\",\"requester_name\":\"이사용자\",\"client_name\":\"ABC 회사\",\"properties\":[{\"property_id\":\"GA_123456789\",\"property_name\":\"ABC 웹사이트\",\"current_permission\":\"None\",\"request"
+    }
+  },
+  "user_management_access": {
+    "/api/users": {
+      "endpoint": "/api/users",
+      "status_code": 500,
+      "expected": "403 (권한 없음)",
+      "actual": "500 - FAILED",
+      "response_preview": "{\"detail\":\"Internal error: \"}"
+    },
+    "/api/users/1": {
+      "endpoint": "/api/users/1",
+      "status_code": 500,
+      "expected": "403 (권한 없음)",
+      "actual": "500 - FAILED",
+      "response_preview": "Internal Server Error"
+    },
+    "/api/admin/users": {
+      "endpoint": "/api/admin/users",
+      "status_code": 404,
+      "expected": "403 (권한 없음)",
+      "actual": "404 - FAILED",
+      "response_preview": "{\"detail\":\"Not Found\"}"
+    },
+    "admin_/api/users": {
+      "endpoint": "/api/users",
+      "status_code": 200,
+      "expected": "200 (권한 있음)",
+      "actual": "200 - SUCCESS",
+      "response_preview": "[{\"id\":1,\"email\":\"admin@example.com\",\"name\":\"시스템 관리자\",\"role\":\"Super Admin\",\"is_active\":true,\"created_at\":\"2024-01-01T00:00:00Z\",\"last_login\":\"2025-08-04T01:15:07.646320Z\"},{\"id\":2,\"email\":\"manager@exa"
+    }
+  },
+  "audit_logs_access": {
+    "requester_/api/audit-logs": {
+      "endpoint": "/api/audit-logs",
+      "status_code": 403,
+      "expected": "403 (권한 없음)",
+      "actual": "403 - SUCCESS",
+      "response_preview": "{\"detail\":\"Insufficient permissions. Missing: read_audit_log\"}"
+    },
+    "requester_/api/audit/logs": {
+      "endpoint": "/api/audit/logs",
+      "status_code": 404,
+      "expected": "403 (권한 없음)",
+      "actual": "404 - FAILED",
+      "response_preview": "{\"detail\":\"Not Found\"}"
+    },
+    "requester_/api/admin/audit-logs": {
+      "endpoint": "/api/admin/audit-logs",
+      "status_code": 404,
+      "expected": "403 (권한 없음)",
+      "actual": "404 - FAILED",
+      "response_preview": "{\"detail\":\"Not Found\"}"
+    },
+    "admin_/api/audit-logs": {
+      "endpoint": "/api/audit-logs",
+      "status_code": 500,
+      "expected": "200 or 404",
+      "actual": "500 - FAILED",
+      "response_preview": "Internal Server Error"
+    },
+    "admin_/api/audit/logs": {
+      "endpoint": "/api/audit/logs",
+      "status_code": 404,
+      "expected": "200 or 404",
+      "actual": "404 - SUCCESS",
+      "response_preview": "{\"detail\":\"Not Found\"}"
+    },
+    "admin_/api/admin/audit-logs": {
+      "endpoint": "/api/admin/audit-logs",
+      "status_code": 404,
+      "expected": "200 or 404",
+      "actual": "404 - SUCCESS",
+      "response_preview": "{\"detail\":\"Not Found\"}"
+    }
+  },
+  "permission_workflow": {
+    "create_request": {
+      "status_code": 422,
+      "expected": "201 (권한 요청 생성)",
+      "actual": "422 - FAILED",
+      "response_preview": "{\"detail\":[{\"type\":\"missing\",\"loc\":[\"body\",\"requester_email\"],\"msg\":\"Field required\",\"input\":{\"client_id\":1,\"service_account_id\":1,\"ga_property_id\":\"123456789\",\"target_email\":\"test@example.com\",\"permi"
+    }
+  },
+  "403_error_validation": {
+    "/api/admin/dashboard": {
+      "endpoint": "/api/admin/dashboard",
+      "status_code": 404,
+      "expected": "403 (권한 없음)",
+      "actual": "404 - FAILED",
+      "response_preview": "{\"detail\":\"Not Found\"}",
+      "has_response": true
+    },
+    "/api/admin/users": {
+      "endpoint": "/api/admin/users",
+      "status_code": 404,
+      "expected": "403 (권한 없음)",
+      "actual": "404 - FAILED",
+      "response_preview": "{\"detail\":\"Not Found\"}",
+      "has_response": true
+    },
+    "/api/admin/permissions": {
+      "endpoint": "/api/admin/permissions",
+      "status_code": 404,
+      "expected": "403 (권한 없음)",
+      "actual": "404 - FAILED",
+      "response_preview": "{\"detail\":\"Not Found\"}",
+      "has_response": true
+    },
+    "/api/admin/audit-logs": {
+      "endpoint": "/api/admin/audit-logs",
+      "status_code": 404,
+      "expected": "403 (권한 없음)",
+      "actual": "404 - FAILED",
+      "response_preview": "{\"detail\":\"Not Found\"}",
+      "has_response": true
+    },
+    "/api/admin/super-admin": {
+      "endpoint": "/api/admin/super-admin",
+      "status_code": 404,
+      "expected": "403 (권한 없음)",
+      "actual": "404 - FAILED",
+      "response_preview": "{\"detail\":\"Not Found\"}",
+      "has_response": true
+    },
+    "/api/super-admin/users": {
+      "endpoint": "/api/super-admin/users",
+      "status_code": 404,
+      "expected": "403 (권한 없음)",
+      "actual": "404 - FAILED",
+      "response_preview": "{\"detail\":\"Not Found\"}",
+      "has_response": true
+    },
+    "/api/users/1/promote": {
+      "endpoint": "/api/users/1/promote",
+      "status_code": 404,
+      "expected": "403 (권한 없음)",
+      "actual": "404 - FAILED",
+      "response_preview": "{\"detail\":\"Not Found\"}",
+      "has_response": true
+    },
+    "/api/users/1/demote": {
+      "endpoint": "/api/users/1/demote",
+      "status_code": 404,
+      "expected": "403 (권한 없음)",
+      "actual": "404 - FAILED",
+      "response_preview": "{\"detail\":\"Not Found\"}",
+      "has_response": true
+    }
+  }
+}
