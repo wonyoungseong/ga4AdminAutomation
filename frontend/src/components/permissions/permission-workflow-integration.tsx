@@ -33,7 +33,7 @@ import {
   BarChart3,
   Key
 } from "lucide-react";
-import { apiClient } from "@/lib/api";
+import { typeSafeApiClient } from "@/lib/api-client";
 import { useAuth } from "@/contexts/auth-context";
 
 interface PermissionRequest {
@@ -168,11 +168,11 @@ export function PermissionWorkflowIntegration() {
       setPermissionRequests(mockRequests);
       
       // GA4 Properties 가져오기
-      const propertiesResponse = await apiClient.getGA4PropertiesManagement(1, 100);
+      const propertiesResponse = await typeSafeApiClient.getGA4PropertiesManagement(1, 100);
       setProperties(propertiesResponse.properties || []);
       
       // Service Accounts 가져오기
-      const serviceAccountsResponse = await apiClient.getServiceAccounts(1, 100);
+      const serviceAccountsResponse = await typeSafeApiClient.getServiceAccounts(1, 100);
       setServiceAccounts(serviceAccountsResponse.service_accounts || []);
       
     } catch (error) {
@@ -349,7 +349,7 @@ export function PermissionWorkflowIntegration() {
 
                   <div className="space-y-2">
                     <Label htmlFor="permission_type">요청 권한</Label>
-                    <Select value={newRequest.permission_type} onValueChange={(value: any) =>
+                    <Select value={newRequest.permission_type} onValueChange={(value: string) =>
                       setNewRequest({ ...newRequest, permission_type: value })
                     }>
                       <SelectTrigger>

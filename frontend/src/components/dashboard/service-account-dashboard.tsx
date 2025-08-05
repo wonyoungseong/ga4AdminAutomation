@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -24,7 +25,7 @@ import {
   Link,
   Unlink
 } from "lucide-react";
-import { apiClient } from "@/lib/api";
+import { typeSafeApiClient } from "@/lib/api-client";
 
 interface ServiceAccountStats {
   total_service_accounts: number;
@@ -91,6 +92,7 @@ const SYNC_STATUS_COLORS = {
 };
 
 export function ServiceAccountDashboard() {
+  const router = useRouter();
   const [stats, setStats] = useState<ServiceAccountStats>({
     total_service_accounts: 0,
     healthy_service_accounts: 0,
@@ -106,6 +108,12 @@ export function ServiceAccountDashboard() {
   const [properties, setProperties] = useState<GA4PropertySummary[]>([]);
   const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [isHealthChecking, setIsHealthChecking] = useState(false);
+  const [syncSuccess, setSyncSuccess] = useState(false);
+  const [healthCheckSuccess, setHealthCheckSuccess] = useState(false);
+  const [syncError, setSyncError] = useState<string>("");
+  const [healthCheckError, setHealthCheckError] = useState<string>("");
 
   useEffect(() => {
     fetchDashboardData();
@@ -116,12 +124,12 @@ export function ServiceAccountDashboard() {
       setIsLoading(true);
       
       // 서비스 계정 데이터 가져오기
-      const serviceAccountsResponse = await apiClient.getServiceAccounts(1, 10);
+      const serviceAccountsResponse = await typeSafeApiClient.getServiceAccounts(1, 10);
       const serviceAccountsData = serviceAccountsResponse.service_accounts || [];
       setServiceAccounts(serviceAccountsData);
       
       // GA4 Property 데이터 가져오기
-      const propertiesResponse = await apiClient.getGA4PropertiesManagement(1, 10);
+      const propertiesResponse = await typeSafeApiClient.getGA4PropertiesManagement(1, 10);
       const propertiesData = propertiesResponse.properties || [];
       setProperties(propertiesData);
       
@@ -235,6 +243,88 @@ export function ServiceAccountDashboard() {
     }
   };
 
+  // Handle full permission sync for all service accounts
+  const handleFullPermissionSync = async () => {
+    try {
+      setIsSyncing(true);
+      setSyncError("");
+      setSyncSuccess(false);
+      
+      // Sync permissions for all service accounts
+      const syncPromises = serviceAccounts.map(async (account) => {
+        try {
+          await typeSafeApiClient.syncServiceAccountPermissions(account.id);
+          return { success: true, accountId: account.id };
+        } catch (error) {
+          console.error(`권한 동기화 실패 (${account.name}):`, error);
+          return { success: false, accountId: account.id, error };
+        }
+      });
+      
+      const results = await Promise.all(syncPromises);
+      const failedSync = results.filter(r => !r.success);
+      
+      if (failedSync.length === 0) {
+        setSyncSuccess(true);
+        setTimeout(() => setSyncSuccess(false), 3000);
+      } else {
+        setSyncError(`${failedSync.length}개 계정의 동기화가 실패했습니다.`);
+        setTimeout(() => setSyncError(""), 5000);
+      }
+      
+      // Refresh dashboard data
+      await fetchDashboardData();
+      
+    } catch (error) {
+      console.error("전체 권한 동기화 실패:", error);
+      setSyncError("권한 동기화 중 오류가 발생했습니다.");
+      setTimeout(() => setSyncError(""), 5000);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  // Handle full health check for all service accounts
+  const handleFullHealthCheck = async () => {
+    try {
+      setIsHealthChecking(true);
+      setHealthCheckError("");
+      setHealthCheckSuccess(false);
+      
+      // Health check for all service accounts
+      const healthPromises = serviceAccounts.map(async (account) => {
+        try {
+          await typeSafeApiClient.testServiceAccountHealth(account.id);
+          return { success: true, accountId: account.id };
+        } catch (error) {
+          console.error(`상태 확인 실패 (${account.name}):`, error);
+          return { success: false, accountId: account.id, error };
+        }
+      });
+      
+      const results = await Promise.all(healthPromises);
+      const failedHealth = results.filter(r => !r.success);
+      
+      if (failedHealth.length === 0) {
+        setHealthCheckSuccess(true);
+        setTimeout(() => setHealthCheckSuccess(false), 3000);
+      } else {
+        setHealthCheckError(`${failedHealth.length}개 계정의 상태 확인이 실패했습니다.`);
+        setTimeout(() => setHealthCheckError(""), 5000);
+      }
+      
+      // Refresh dashboard data
+      await fetchDashboardData();
+      
+    } catch (error) {
+      console.error("전체 상태 확인 실패:", error);
+      setHealthCheckError("상태 확인 중 오류가 발생했습니다.");
+      setTimeout(() => setHealthCheckError(""), 5000);
+    } finally {
+      setIsHealthChecking(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -309,7 +399,7 @@ export function ServiceAccountDashboard() {
       </div>
 
       {/* 경고 및 알림 */}
-      {(stats.error_service_accounts > 0 || stats.sync_pending > 0) && (
+      {(stats.error_service_accounts > 0 || stats.sync_pending > 0 || syncError || healthCheckError || syncSuccess || healthCheckSuccess) && (
         <div className="space-y-4">
           {stats.error_service_accounts > 0 && (
             <Alert className="border-red-200 bg-red-50">
@@ -325,6 +415,38 @@ export function ServiceAccountDashboard() {
               <AlertTriangle className="h-4 w-4 text-yellow-600" />
               <AlertDescription className="text-yellow-800">
                 <strong>{stats.sync_pending}개의 서비스 계정</strong>이 권한 동기화를 기다리고 있습니다.
+              </AlertDescription>
+            </Alert>
+          )}
+          {syncError && (
+            <Alert className="border-red-200 bg-red-50">
+              <XCircle className="h-4 w-4 text-red-600" />
+              <AlertDescription className="text-red-800">
+                {syncError}
+              </AlertDescription>
+            </Alert>
+          )}
+          {healthCheckError && (
+            <Alert className="border-red-200 bg-red-50">
+              <XCircle className="h-4 w-4 text-red-600" />
+              <AlertDescription className="text-red-800">
+                {healthCheckError}
+              </AlertDescription>
+            </Alert>
+          )}
+          {syncSuccess && (
+            <Alert className="border-green-200 bg-green-50">
+              <CheckCircle className="h-4 w-4 text-green-600" />
+              <AlertDescription className="text-green-800">
+                <strong>권한 동기화가 성공적으로 완료되었습니다!</strong>
+              </AlertDescription>
+            </Alert>
+          )}
+          {healthCheckSuccess && (
+            <Alert className="border-green-200 bg-green-50">
+              <CheckCircle className="h-4 w-4 text-green-600" />
+              <AlertDescription className="text-green-800">
+                <strong>모든 서비스 계정의 상태 확인이 완료되었습니다!</strong>
               </AlertDescription>
             </Alert>
           )}
@@ -346,10 +468,14 @@ export function ServiceAccountDashboard() {
           <CardContent>
             <div className="space-y-3">
               {serviceAccounts.slice(0, 5).map((account) => (
-                <div key={account.id} className="flex items-center justify-between p-3 border rounded-lg">
+                <div 
+                  key={account.id} 
+                  className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 cursor-pointer transition-colors group"
+                  onClick={() => router.push(`/dashboard/service-accounts/${account.id}`)}
+                >
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="font-medium text-sm">{account.name}</span>
+                      <span className="font-medium text-sm group-hover:text-primary transition-colors">{account.name}</span>
                       <Badge className={HEALTH_STATUS_COLORS[account.health_status]} variant="outline">
                         {account.health_status}
                       </Badge>
@@ -383,10 +509,14 @@ export function ServiceAccountDashboard() {
           <CardContent>
             <div className="space-y-3">
               {properties.slice(0, 5).map((property) => (
-                <div key={property.id} className="flex items-center justify-between p-3 border rounded-lg">
+                <div 
+                  key={property.id} 
+                  className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 cursor-pointer transition-colors group"
+                  onClick={() => router.push(`/dashboard/ga4-properties`)}
+                >
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="font-medium text-sm">{property.display_name}</span>
+                      <span className="font-medium text-sm group-hover:text-primary transition-colors">{property.display_name}</span>
                       <Badge className={ACCESS_STATUS_COLORS[property.access_status]} variant="outline">
                         {property.access_status}
                       </Badge>
@@ -453,21 +583,55 @@ export function ServiceAccountDashboard() {
         </CardHeader>
         <CardContent>
           <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
-            <Button variant="outline" className="h-auto p-4 flex flex-col items-center gap-2">
+            <Button 
+              variant="outline" 
+              className="h-auto p-4 flex flex-col items-center gap-2 hover:bg-primary/5 hover:border-primary transition-colors"
+              onClick={() => router.push('/dashboard/service-accounts/add')}
+            >
               <Key className="h-6 w-6" />
               <span className="text-sm">서비스 계정 추가</span>
             </Button>
-            <Button variant="outline" className="h-auto p-4 flex flex-col items-center gap-2">
-              <Activity className="h-6 w-6" />
-              <span className="text-sm">전체 상태 확인</span>
+            <Button 
+              variant="outline" 
+              className="h-auto p-4 flex flex-col items-center gap-2 hover:bg-primary/5 hover:border-primary transition-colors"
+              onClick={handleFullHealthCheck}
+              disabled={isHealthChecking}
+            >
+              {isHealthChecking ? (
+                <RefreshCw className="h-6 w-6 animate-spin" />
+              ) : healthCheckSuccess ? (
+                <CheckCircle className="h-6 w-6 text-green-600" />
+              ) : (
+                <Activity className="h-6 w-6" />
+              )}
+              <span className="text-sm">
+                {isHealthChecking ? "확인 중..." : "전체 상태 확인"}
+              </span>
             </Button>
-            <Button variant="outline" className="h-auto p-4 flex flex-col items-center gap-2">
-              <RefreshCw className="h-6 w-6" />
-              <span className="text-sm">권한 동기화</span>
+            <Button 
+              variant="outline" 
+              className="h-auto p-4 flex flex-col items-center gap-2 hover:bg-primary/5 hover:border-primary transition-colors"
+              onClick={handleFullPermissionSync}
+              disabled={isSyncing}
+            >
+              {isSyncing ? (
+                <RefreshCw className="h-6 w-6 animate-spin" />
+              ) : syncSuccess ? (
+                <CheckCircle className="h-6 w-6 text-green-600" />
+              ) : (
+                <RefreshCw className="h-6 w-6" />
+              )}
+              <span className="text-sm">
+                {isSyncing ? "동기화 중..." : "권한 동기화"}
+              </span>
             </Button>
-            <Button variant="outline" className="h-auto p-4 flex flex-col items-center gap-2">
+            <Button 
+              variant="outline" 
+              className="h-auto p-4 flex flex-col items-center gap-2 hover:bg-primary/5 hover:border-primary transition-colors"
+              onClick={() => router.push('/dashboard/ga4-properties')}
+            >
               <BarChart3 className="h-6 w-6" />
-              <span className="text-sm">Property 발견</span>
+              <span className="text-sm">Property 관리</span>
             </Button>
           </div>
         </CardContent>

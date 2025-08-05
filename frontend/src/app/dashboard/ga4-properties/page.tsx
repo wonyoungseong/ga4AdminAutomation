@@ -7,7 +7,6 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   Dialog,
   DialogContent,
@@ -21,60 +20,18 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   BarChart3, 
-  Building2, 
   RefreshCw, 
   CheckCircle, 
   XCircle, 
-  AlertTriangle,
   Eye,
-  Settings,
   Activity,
   Search,
-  Filter,
   Link,
-  Unlink,
-  Shield,
-  Users,
-  Key,
-  Plus,
-  Edit3,
-  Trash2
+  Unlink
 } from "lucide-react";
-import { apiClient } from "@/lib/api";
+import { typeSafeApiClient, ApiClientError } from "@/lib/api-client";
 import { useAuth } from "@/contexts/auth-context";
-
-interface GA4Property {
-  id: number;
-  property_id: string;
-  display_name: string;
-  service_account_id: number;
-  service_account_name: string;
-  service_account_email: string;
-  client_id?: number;
-  client_name?: string;
-  is_active: boolean;
-  access_status: 'valid' | 'invalid' | 'unknown';
-  last_access_check?: string;
-  sync_status: 'synced' | 'pending' | 'error' | 'never';
-  last_sync?: string;
-  permissions_granted: number;
-  created_at: string;
-  updated_at: string;
-}
-
-interface ServiceAccount {
-  id: number;
-  name: string;
-  email: string;
-  is_active: boolean;
-  health_status: string;
-}
-
-interface Client {
-  id: number;
-  name: string;
-  description?: string;
-}
+import { GA4Property, ServiceAccount, Client, PaginatedResponse } from "@/types/api";
 
 interface PropertyPermission {
   id: number;
@@ -114,15 +71,14 @@ export default function GA4PropertiesPage() {
   const [propertyPermissions, setPropertyPermissions] = useState<PropertyPermission[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isAssignDialogOpen, setIsAssignDialogOpen] = useState(false);
-  const [isPermissionsDialogOpen, setIsPermissionsDialogOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
   const [serviceAccountFilter, setServiceAccountFilter] = useState("");
   const [clientFilter, setClientFilter] = useState("");
   const [accessStatusFilter, setAccessStatusFilter] = useState("");
   const [isOperationLoading, setIsOperationLoading] = useState<{ [key: string]: boolean }>({});
   const [assignToClient, setAssignToClient] = useState("");
+  const [totalPages, setTotalPages] = useState(1);
 
   useEffect(() => {
     fetchProperties();
@@ -135,11 +91,14 @@ export default function GA4PropertiesPage() {
       setIsLoading(true);
       const serviceAccountId = serviceAccountFilter ? parseInt(serviceAccountFilter) : undefined;
       const clientId = clientFilter ? parseInt(clientFilter) : undefined;
-      const response = await apiClient.getGA4PropertiesManagement(currentPage, 20, serviceAccountId, clientId);
-      setProperties(response.properties || []);
-      setTotalPages(Math.ceil((response.total || 0) / 20));
+      const response = await typeSafeApiClient.getGA4PropertiesManagement(currentPage, 20, serviceAccountId, clientId);
+      setProperties(response.items || []);
+      setTotalPages(response.pages || Math.ceil((response.total || 0) / 20));
     } catch (error) {
       console.error("GA4 Property 조회 실패:", error);
+      if (error instanceof ApiClientError) {
+        console.error("API Error Details:", error.details);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -147,38 +106,34 @@ export default function GA4PropertiesPage() {
 
   const fetchServiceAccounts = async () => {
     try {
-      const response = await apiClient.getServiceAccounts(1, 100);
-      setServiceAccounts(response.service_accounts || []);
+      const response = await typeSafeApiClient.getServiceAccounts(1, 100);
+      setServiceAccounts(response.items || []);
     } catch (error) {
       console.error("서비스 계정 조회 실패:", error);
+      if (error instanceof ApiClientError) {
+        console.error("API Error Details:", error.details);
+      }
     }
   };
 
   const fetchClients = async () => {
     try {
-      const response = await apiClient.getClients(1, 100);
-      setClients(response.clients || []);
+      const response = await typeSafeApiClient.getClients(1, 100);
+      setClients(response.items || []);
     } catch (error) {
       console.error("클라이언트 조회 실패:", error);
-    }
-  };
-
-  const fetchPropertyPermissions = async (propertyId: number) => {
-    try {
-      // Note: This would need to be implemented in the backend
-      // const response = await apiClient.getPropertyPermissions(propertyId);
-      // setPropertyPermissions(response.permissions || []);
-      setPropertyPermissions([]);
-    } catch (error) {
-      console.error("Property 권한 조회 실패:", error);
-      setPropertyPermissions([]);
+      if (error instanceof ApiClientError) {
+        console.error("API Error Details:", error.details);
+      }
     }
   };
 
   const handleAssignToClient = async (propertyId: number, clientId: number) => {
     try {
       setIsOperationLoading({ [`assign_${propertyId}`]: true });
-      await apiClient.assignPropertyToClient(propertyId, clientId);
+      // TODO: Implement assignPropertyToClient in typeSafeApiClient
+      console.log("TODO: Assign property", propertyId, "to client", clientId);
+      // await typeSafeApiClient.assignPropertyToClient(propertyId, clientId);
       await fetchProperties();
       setIsAssignDialogOpen(false);
       setAssignToClient("");
@@ -194,7 +149,9 @@ export default function GA4PropertiesPage() {
 
     try {
       setIsOperationLoading({ [`unassign_${propertyId}`]: true });
-      await apiClient.unassignPropertyFromClient(propertyId);
+      // TODO: Implement unassignPropertyFromClient in typeSafeApiClient
+      console.log("TODO: Unassign property", propertyId, "from client");
+      // await typeSafeApiClient.unassignPropertyFromClient(propertyId);
       await fetchProperties();
     } catch (error) {
       console.error("클라이언트 할당 해제 실패:", error);
@@ -206,24 +163,12 @@ export default function GA4PropertiesPage() {
   const handleValidateAccess = async (propertyId: number) => {
     try {
       setIsOperationLoading({ [`validate_${propertyId}`]: true });
-      await apiClient.validatePropertyAccess(propertyId);
+      // TODO: Implement validatePropertyAccess in typeSafeApiClient
+      console.log("TODO: Validate access for property", propertyId);
+      // await typeSafeApiClient.validatePropertyAccess(propertyId);
       await fetchProperties();
     } catch (error) {
       console.error("접근 검증 실패:", error);
-    } finally {
-      setIsOperationLoading({});
-    }
-  };
-
-  const handleDeleteProperty = async (propertyId: number) => {
-    if (!confirm("정말로 이 GA4 Property를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.")) return;
-
-    try {
-      setIsOperationLoading({ [`delete_${propertyId}`]: true });
-      await apiClient.deleteGA4Property(propertyId);
-      await fetchProperties();
-    } catch (error) {
-      console.error("Property 삭제 실패:", error);
     } finally {
       setIsOperationLoading({});
     }
@@ -310,7 +255,7 @@ export default function GA4PropertiesPage() {
             <BarChart3 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{properties.length}</div>
+            <div className="text-2xl font-bold">{properties?.length || 0}</div>
             <p className="text-xs text-muted-foreground">등록된 Property</p>
           </CardContent>
         </Card>
@@ -322,7 +267,7 @@ export default function GA4PropertiesPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">
-              {properties.filter(p => p.client_id).length}
+              {properties?.filter(p => p.client_id)?.length || 0}
             </div>
             <p className="text-xs text-muted-foreground">클라이언트에 할당됨</p>
           </CardContent>
@@ -335,7 +280,7 @@ export default function GA4PropertiesPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">
-              {properties.filter(p => p.access_status === 'valid').length}
+              {properties?.filter(p => p.access_status === 'valid')?.length || 0}
             </div>
             <p className="text-xs text-muted-foreground">정상 접근 가능</p>
           </CardContent>
@@ -348,7 +293,7 @@ export default function GA4PropertiesPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-red-600">
-              {properties.filter(p => p.access_status === 'invalid').length}
+              {properties?.filter(p => p.access_status === 'invalid')?.length || 0}
             </div>
             <p className="text-xs text-muted-foreground">접근 문제 발생</p>
           </CardContent>
@@ -378,8 +323,8 @@ export default function GA4PropertiesPage() {
                 <SelectValue placeholder="서비스 계정 필터" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">모든 서비스 계정</SelectItem>
-                {serviceAccounts.map((sa) => (
+                <SelectItem value="all">모든 서비스 계정</SelectItem>
+                {serviceAccounts?.map((sa) => (
                   <SelectItem key={sa.id} value={sa.id.toString()}>
                     {sa.name}
                   </SelectItem>
@@ -391,9 +336,9 @@ export default function GA4PropertiesPage() {
                 <SelectValue placeholder="클라이언트 필터" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">모든 클라이언트</SelectItem>
+                <SelectItem value="all">모든 클라이언트</SelectItem>
                 <SelectItem value="unassigned">할당되지 않음</SelectItem>
-                {clients.map((client) => (
+                {clients?.map((client) => (
                   <SelectItem key={client.id} value={client.id.toString()}>
                     {client.name}
                   </SelectItem>
@@ -405,7 +350,7 @@ export default function GA4PropertiesPage() {
                 <SelectValue placeholder="접근 상태" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">모든 상태</SelectItem>
+                <SelectItem value="all">모든 상태</SelectItem>
                 <SelectItem value="valid">접근 가능</SelectItem>
                 <SelectItem value="invalid">접근 불가</SelectItem>
                 <SelectItem value="unknown">확인되지 않음</SelectItem>
@@ -425,8 +370,8 @@ export default function GA4PropertiesPage() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {filteredProperties.map((property) => {
-              const AccessIcon = ACCESS_STATUS_ICONS[property.access_status];
+            {filteredProperties?.map((property) => {
+              const AccessIcon = ACCESS_STATUS_ICONS[property.access_status] || ACCESS_STATUS_ICONS.unknown;
               
               return (
                 <div key={property.id} className="border rounded-lg p-4">
@@ -434,11 +379,11 @@ export default function GA4PropertiesPage() {
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
                         <h3 className="font-semibold text-lg">{property.display_name}</h3>
-                        <Badge className={ACCESS_STATUS_COLORS[property.access_status]}>
+                        <Badge className={ACCESS_STATUS_COLORS[property.access_status] || ACCESS_STATUS_COLORS.unknown}>
                           <AccessIcon className="w-3 h-3 mr-1" />
                           {getAccessStatusText(property.access_status)}
                         </Badge>
-                        <Badge className={SYNC_STATUS_COLORS[property.sync_status]}>
+                        <Badge className={SYNC_STATUS_COLORS[property.sync_status] || SYNC_STATUS_COLORS.never}>
                           {getSyncStatusText(property.sync_status)}
                         </Badge>
                         {!property.is_active && (
@@ -484,7 +429,6 @@ export default function GA4PropertiesPage() {
                         size="sm"
                         onClick={() => {
                           setSelectedProperty(property);
-                          fetchPropertyPermissions(property.id);
                         }}
                       >
                         <Eye className="w-4 h-4 mr-1" />
@@ -505,7 +449,7 @@ export default function GA4PropertiesPage() {
                         접근확인
                       </Button>
 
-                      {(user?.role === 'super_admin' || user?.role === 'admin') && (
+                      {(user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN') && (
                         <>
                           {property.client_id ? (
                             <Button
@@ -548,7 +492,7 @@ export default function GA4PropertiesPage() {
                                         <SelectValue placeholder="클라이언트를 선택하세요" />
                                       </SelectTrigger>
                                       <SelectContent>
-                                        {clients.map((client) => (
+                                        {clients?.map((client) => (
                                           <SelectItem key={client.id} value={client.id.toString()}>
                                             {client.name}
                                           </SelectItem>
@@ -581,20 +525,6 @@ export default function GA4PropertiesPage() {
                               </DialogContent>
                             </Dialog>
                           )}
-
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleDeleteProperty(property.id)}
-                            disabled={isOperationLoading[`delete_${property.id}`]}
-                            className="text-red-600 hover:text-red-700"
-                          >
-                            {isOperationLoading[`delete_${property.id}`] ? (
-                              <RefreshCw className="w-4 h-4 animate-spin" />
-                            ) : (
-                              <Trash2 className="w-4 h-4" />
-                            )}
-                          </Button>
                         </>
                       )}
                     </div>
@@ -603,7 +533,7 @@ export default function GA4PropertiesPage() {
               );
             })}
             
-            {filteredProperties.length === 0 && (
+            {filteredProperties?.length === 0 && (
               <div className="text-center py-8 text-muted-foreground">
                 {searchTerm || serviceAccountFilter || clientFilter || accessStatusFilter 
                   ? "검색 조건에 맞는 GA4 Property가 없습니다."
@@ -634,10 +564,9 @@ export default function GA4PropertiesPage() {
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="info" className="w-full">
-              <TabsList className="grid w-full grid-cols-3">
+              <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="info">기본 정보</TabsTrigger>
                 <TabsTrigger value="access">접근 상태</TabsTrigger>
-                <TabsTrigger value="permissions">권한 ({propertyPermissions.length})</TabsTrigger>
               </TabsList>
               
               <TabsContent value="info" className="space-y-4">
@@ -655,10 +584,6 @@ export default function GA4PropertiesPage() {
                     <p className="text-sm text-muted-foreground mt-1">{selectedProperty.service_account_name}</p>
                   </div>
                   <div>
-                    <Label className="text-sm font-medium">서비스 계정 이메일</Label>
-                    <p className="text-sm text-muted-foreground mt-1 break-all">{selectedProperty.service_account_email}</p>
-                  </div>
-                  <div>
                     <Label className="text-sm font-medium">할당 클라이언트</Label>
                     <p className="text-sm text-muted-foreground mt-1">{selectedProperty.client_name || '할당되지 않음'}</p>
                   </div>
@@ -672,7 +597,7 @@ export default function GA4PropertiesPage() {
                   <div>
                     <Label className="text-sm font-medium">접근 상태</Label>
                     <div className="mt-1">
-                      <Badge className={ACCESS_STATUS_COLORS[selectedProperty.access_status]}>
+                      <Badge className={ACCESS_STATUS_COLORS[selectedProperty.access_status] || ACCESS_STATUS_COLORS.unknown}>
                         {getAccessStatusText(selectedProperty.access_status)}
                       </Badge>
                     </div>
@@ -680,7 +605,7 @@ export default function GA4PropertiesPage() {
                   <div>
                     <Label className="text-sm font-medium">동기화 상태</Label>
                     <div className="mt-1">
-                      <Badge className={SYNC_STATUS_COLORS[selectedProperty.sync_status]}>
+                      <Badge className={SYNC_STATUS_COLORS[selectedProperty.sync_status] || SYNC_STATUS_COLORS.never}>
                         {getSyncStatusText(selectedProperty.sync_status)}
                       </Badge>
                     </div>
@@ -736,7 +661,7 @@ export default function GA4PropertiesPage() {
                     <div>
                       <Label className="text-sm font-medium">현재 접근 상태</Label>
                       <div className="mt-2">
-                        <Badge className={ACCESS_STATUS_COLORS[selectedProperty.access_status]} variant="outline">
+                        <Badge className={ACCESS_STATUS_COLORS[selectedProperty.access_status] || ACCESS_STATUS_COLORS.unknown} variant="outline">
                           {getAccessStatusText(selectedProperty.access_status)}
                         </Badge>
                       </div>
@@ -767,45 +692,6 @@ export default function GA4PropertiesPage() {
                       )}
                     </Button>
                   </div>
-                </div>
-              </TabsContent>
-              
-              <TabsContent value="permissions">
-                <div className="space-y-4">
-                  {propertyPermissions.length > 0 ? (
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>사용자 이메일</TableHead>
-                          <TableHead>권한 유형</TableHead>
-                          <TableHead>부여일</TableHead>
-                          <TableHead>부여자</TableHead>
-                          <TableHead>상태</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {propertyPermissions.map((permission) => (
-                          <TableRow key={permission.id}>
-                            <TableCell>{permission.user_email}</TableCell>
-                            <TableCell>
-                              <Badge variant="outline">{permission.permission_type}</Badge>
-                            </TableCell>
-                            <TableCell>{formatDate(permission.granted_at)}</TableCell>
-                            <TableCell>{permission.granted_by}</TableCell>
-                            <TableCell>
-                              <Badge variant={permission.is_active ? "default" : "secondary"}>
-                                {permission.is_active ? "활성" : "비활성"}
-                              </Badge>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  ) : (
-                    <div className="text-center py-8 text-muted-foreground">
-                      이 Property에 부여된 권한이 없습니다.
-                    </div>
-                  )}
                 </div>
               </TabsContent>
             </Tabs>

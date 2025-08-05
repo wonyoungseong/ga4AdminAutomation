@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Authentication Test</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            max-width: 800px; 
+            margin: 0 auto; 
+            padding: 20px; 
+        }
+        .log { 
+            background: #f5f5f5; 
+            padding: 10px; 
+            margin: 10px 0; 
+            border-radius: 4px; 
+            white-space: pre-wrap;
+            height: 400px;
+            overflow-y: auto;
+        }
+        button { 
+            margin: 5px; 
+            padding: 10px 15px; 
+            cursor: pointer; 
+        }
+        .success { color: green; }
+        .error { color: red; }
+        .info { color: blue; }
+    </style>
+</head>
+<body>
+    <h1>Frontend Authentication Test</h1>
+    
+    <div>
+        <button onclick="testLogin()">Test Login</button>
+        <button onclick="testGetCurrentUser()">Test Get Current User</button>
+        <button onclick="testRefreshToken()">Test Refresh Token</button>
+        <button onclick="clearTokens()">Clear Tokens</button>
+        <button onclick="clearLog()">Clear Log</button>
+    </div>
+    
+    <div id="log" class="log"></div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:8000';
+        
+        function log(message, type = 'info') {
+            const logElement = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type === 'error' ? 'error' : type === 'success' ? 'success' : 'info';
+            logElement.innerHTML += `<span class="${className}">[${timestamp}] ${message}</span>\n`;
+            logElement.scrollTop = logElement.scrollHeight;
+        }
+        
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+        }
+        
+        function clearTokens() {
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('refresh_token');
+            localStorage.removeItem('token_expiry');
+            log('Tokens cleared from localStorage', 'info');
+        }
+        
+        async function testLogin() {
+            try {
+                log('Testing login...', 'info');
+                
+                const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        email: 'admin@test.com',
+                        password: 'admin123'
+                    }),
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    // Store tokens like the API client does
+                    localStorage.setItem('auth_token', data.access_token);
+                    if (data.refresh_token) {
+                        localStorage.setItem('refresh_token', data.refresh_token);
+                    }
+                    
+                    // Extract expiry from JWT token
+                    try {
+                        const payload = JSON.parse(atob(data.access_token.split('.')[1]));
+                        if (payload.exp) {
+                            localStorage.setItem('token_expiry', payload.exp.toString());
+                        }
+                    } catch (error) {
+                        log('Failed to parse token expiry: ' + error.message, 'error');
+                    }
+                    
+                    log('✅ Login successful!', 'success');
+                    log(`User: ${data.user.name} (${data.user.email})`, 'success');
+                    log(`Access Token: ${data.access_token.substring(0, 30)}...`, 'info');
+                    log(`Refresh Token: ${data.refresh_token ? data.refresh_token.substring(0, 30) + '...' : 'none'}`, 'info');
+                } else {
+                    const error = await response.json();
+                    log('❌ Login failed: ' + (error.message || error.detail || 'Unknown error'), 'error');
+                }
+            } catch (error) {
+                log('❌ Login error: ' + error.message, 'error');
+            }
+        }
+        
+        async function testGetCurrentUser() {
+            try {
+                log('Testing get current user...', 'info');
+                
+                const token = localStorage.getItem('auth_token');
+                if (!token) {
+                    log('❌ No access token found. Please login first.', 'error');
+                    return;
+                }
+                
+                const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const user = await response.json();
+                    log('✅ Get current user successful!', 'success');
+                    log(`User: ${user.name} (${user.email})`, 'success');
+                    log(`Role: ${user.role}`, 'info');
+                } else {
+                    const error = await response.json();
+                    log('❌ Get current user failed: ' + (error.message || error.detail || 'Unknown error'), 'error');
+                    
+                    if (response.status === 401) {
+                        log('Token may be expired. Try refreshing token.', 'info');
+                    }
+                }
+            } catch (error) {
+                log('❌ Get current user error: ' + error.message, 'error');
+            }
+        }
+        
+        async function testRefreshToken() {
+            try {
+                log('Testing token refresh...', 'info');
+                
+                const refreshToken = localStorage.getItem('refresh_token');
+                if (!refreshToken) {
+                    log('❌ No refresh token found. Please login first.', 'error');
+                    return;
+                }
+                
+                const response = await fetch(`${API_BASE_URL}/api/auth/refresh?refresh_token=${encodeURIComponent(refreshToken)}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    // Update stored tokens
+                    localStorage.setItem('auth_token', data.access_token);
+                    if (data.refresh_token) {
+                        localStorage.setItem('refresh_token', data.refresh_token);
+                    }
+                    
+                    // Extract expiry from JWT token
+                    try {
+                        const payload = JSON.parse(atob(data.access_token.split('.')[1]));
+                        if (payload.exp) {
+                            localStorage.setItem('token_expiry', payload.exp.toString());
+                        }
+                    } catch (error) {
+                        log('Failed to parse token expiry: ' + error.message, 'error');
+                    }
+                    
+                    log('✅ Token refresh successful!', 'success');
+                    log(`New Access Token: ${data.access_token.substring(0, 30)}...`, 'info');
+                    log(`New Refresh Token: ${data.refresh_token ? data.refresh_token.substring(0, 30) + '...' : 'none'}`, 'info');
+                } else {
+                    const error = await response.json();
+                    log('❌ Token refresh failed: ' + (error.message || error.detail || 'Unknown error'), 'error');
+                }
+            } catch (error) {
+                log('❌ Token refresh error: ' + error.message, 'error');
+            }
+        }
+        
+        // Check for existing tokens on page load
+        window.onload = function() {
+            const token = localStorage.getItem('auth_token');
+            const refreshToken = localStorage.getItem('refresh_token');
+            const expiry = localStorage.getItem('token_expiry');
+            
+            if (token) {
+                log('Found existing access token: ' + token.substring(0, 30) + '...', 'info');
+            }
+            if (refreshToken) {
+                log('Found existing refresh token: ' + refreshToken.substring(0, 30) + '...', 'info');
+            }
+            if (expiry) {
+                const expiryDate = new Date(parseInt(expiry) * 1000);
+                const now = new Date();
+                const isExpired = now >= expiryDate;
+                log(`Token expiry: ${expiryDate.toLocaleString()} (${isExpired ? 'EXPIRED' : 'VALID'})`, isExpired ? 'error' : 'success');
+            }
+        };
+    </script>
+</body>
+</html>

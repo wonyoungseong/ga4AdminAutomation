@@ -17,7 +17,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { BarChart3, Building2, Users, Plus, Eye, Settings } from "lucide-react";
-import { apiClient } from "@/lib/api";
+import { typeSafeApiClient } from "@/lib/api-client";
 
 interface GA4Account {
   id: string;
@@ -64,11 +64,11 @@ export default function GA4Page() {
       setIsLoading(true);
       
       // GA4 계정 목록 조회
-      const accountsResponse = await apiClient.getGA4Accounts();
+      const accountsResponse = await typeSafeApiClient.getGA4Accounts();
       setAccounts(accountsResponse.accounts || []);
       
       // GA4 Property 목록 조회
-      const propertiesResponse = await apiClient.getGA4Properties();
+      const propertiesResponse = await typeSafeApiClient.getGA4Properties();
       setProperties(propertiesResponse.properties || []);
       
     } catch (error) {
@@ -80,7 +80,7 @@ export default function GA4Page() {
 
   const fetchPropertyPermissions = async (propertyId: string) => {
     try {
-      const response = await apiClient.getPropertyPermissions(propertyId);
+      const response = await typeSafeApiClient.getPropertyPermissions(propertyId);
       setPropertyPermissions(response.permissions || []);
     } catch (error) {
       console.error("Property 권한 조회 실패:", error);
@@ -92,7 +92,7 @@ export default function GA4Page() {
     if (!selectedProperty) return;
     
     try {
-      await apiClient.grantPropertyPermission(
+      await typeSafeApiClient.grantPropertyPermission(
         selectedProperty.id,
         newPermission.user_email,
         newPermission.permission_type
@@ -112,7 +112,7 @@ export default function GA4Page() {
 
   const handleRevokePermission = async (propertyId: string, bindingName: string) => {
     try {
-      await apiClient.revokePropertyPermission(propertyId, bindingName);
+      await typeSafeApiClient.revokePropertyPermission(propertyId, bindingName);
       
       // 권한 목록 새로고침
       await fetchPropertyPermissions(propertyId);

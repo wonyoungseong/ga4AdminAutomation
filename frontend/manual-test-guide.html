@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GA4 Admin Authentication Test Guide</title>
+    <style>
+        body { font-family: system-ui, -apple-system, sans-serif; max-width: 1200px; margin: 0 auto; padding: 20px; line-height: 1.6; }
+        .header { background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 30px; }
+        .test-section { margin: 30px 0; padding: 20px; border: 1px solid #e9ecef; border-radius: 8px; }
+        .test-step { margin: 15px 0; padding: 10px; background: #fff; border-left: 4px solid #007bff; }
+        .expected { background: #d4edda; padding: 10px; border-radius: 4px; margin: 10px 0; }
+        .issue { background: #f8d7da; padding: 10px; border-radius: 4px; margin: 10px 0; }
+        .console-code { background: #f8f9fa; padding: 15px; border-radius: 4px; font-family: monospace; margin: 10px 0; }
+        .status-good { color: #28a745; }
+        .status-bad { color: #dc3545; }
+        .status-warning { color: #ffc107; }
+        .checklist { list-style: none; padding: 0; }
+        .checklist li { margin: 10px 0; padding: 10px; background: #f8f9fa; border-radius: 4px; }
+        .network-monitor { background: #e7f3ff; padding: 15px; border-radius: 4px; margin: 15px 0; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🔐 GA4 Admin Authentication Test Guide</h1>
+        <p><strong>Application URL:</strong> <a href="http://localhost:3000" target="_blank">http://localhost:3000</a></p>
+        <p><strong>Super Admin Credentials:</strong> admin@test.com / admin123</p>
+        <p><strong>Test Date:</strong> <span id="test-date"></span></p>
+    </div>
+
+    <div class="test-section">
+        <h2>🚀 Phase 1: Basic Login and Navigation Tests</h2>
+        
+        <div class="test-step">
+            <h3>Test 1.1: Fresh Login Flow</h3>
+            <ol>
+                <li>Open browser DevTools (F12) → Network tab</li>
+                <li>Clear all site data: Application → Storage → Clear storage</li>
+                <li>Navigate to <a href="http://localhost:3000" target="_blank">http://localhost:3000</a></li>
+                <li>Should auto-redirect to /login page</li>
+                <li>Enter credentials: admin@test.com / admin123</li>
+                <li>Click "로그인" button</li>
+                <li>Should redirect to /dashboard</li>
+            </ol>
+            <div class="expected">✅ <strong>Expected:</strong> Successful login → dashboard loads with user info</div>
+            <div class="network-monitor">
+                <strong>Network Monitor:</strong> Look for these requests:
+                <ul>
+                    <li>POST /api/auth/login (should return 200)</li>
+                    <li>GET /api/auth/me (should return 200 with user data)</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="test-step">
+            <h3>Test 1.2: Dashboard Navigation</h3>
+            <p>After successful login, test navigation to each section:</p>
+            <ul class="checklist">
+                <li><input type="checkbox"> <a href="http://localhost:3000/dashboard" target="_blank">/dashboard</a> (Home)</li>
+                <li><input type="checkbox"> <a href="http://localhost:3000/dashboard/users" target="_blank">/dashboard/users</a> (Users)</li>
+                <li><input type="checkbox"> <a href="http://localhost:3000/dashboard/permissions" target="_blank">/dashboard/permissions</a> (Permissions)</li>
+                <li><input type="checkbox"> <a href="http://localhost:3000/dashboard/service-accounts" target="_blank">/dashboard/service-accounts</a> (Service Accounts)</li>
+                <li><input type="checkbox"> <a href="http://localhost:3000/dashboard/ga4-properties" target="_blank">/dashboard/ga4-properties</a> (GA4 Properties)</li>
+                <li><input type="checkbox"> <a href="http://localhost:3000/dashboard/audit" target="_blank">/dashboard/audit</a> (Audit)</li>
+            </ul>
+            <div class="expected">✅ <strong>Expected:</strong> All pages load without redirect to login</div>
+            <div class="issue">❌ <strong>Potential Issue:</strong> Unexpected redirects to /login during navigation</div>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>🔄 Phase 2: Session Persistence Tests</h2>
+        
+        <div class="test-step">
+            <h3>Test 2.1: Page Refresh Test</h3>
+            <ol>
+                <li>Complete Test 1.1 (login successful)</li>
+                <li>Navigate to any dashboard page</li>
+                <li>Press F5 or Ctrl+R to refresh</li>
+                <li>Monitor Network tab for authentication calls</li>
+            </ol>
+            <div class="expected">✅ <strong>Expected:</strong> Page reloads, user stays authenticated</div>
+            <div class="issue">❌ <strong>Likely Issue:</strong> Redirect to login during token refresh process</div>
+            
+            <div class="console-code">
+                <strong>Console Commands to Debug:</strong><br>
+                // Check token before refresh<br>
+                console.log('Before refresh:', localStorage.getItem('auth_token'));<br><br>
+                // After refresh, check if token is still there<br>
+                console.log('After refresh:', localStorage.getItem('auth_token'));
+            </div>
+        </div>
+
+        <div class="test-step">
+            <h3>Test 2.2: New Tab Session Test</h3>
+            <ol>
+                <li>Complete Test 1.1 in Tab 1</li>
+                <li>Open new tab (Tab 2)</li>
+                <li>Navigate to <a href="http://localhost:3000/dashboard" target="_blank">http://localhost:3000/dashboard</a></li>
+                <li>Check if user is authenticated in Tab 2</li>
+            </ol>
+            <div class="expected">✅ <strong>Expected:</strong> Tab 2 recognizes existing session</div>
+            <div class="issue">❌ <strong>Likely Issue:</strong> Tab 2 redirects to login due to race condition</div>
+        </div>
+
+        <div class="test-step">
+            <h3>Test 2.3: Rapid Navigation Test</h3>
+            <ol>
+                <li>After successful login, quickly navigate between multiple pages</li>
+                <li>Click sidebar links rapidly without waiting for full page loads</li>
+                <li>Monitor for any authentication errors</li>
+            </ol>
+            <div class="issue">❌ <strong>Likely Issue:</strong> Multiple simultaneous authentication checks cause conflicts</div>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>🔍 Phase 3: Advanced Debugging Tests</h2>
+        
+        <div class="test-step">
+            <h3>Test 3.1: Token Expiry Simulation</h3>
+            <ol>
+                <li>Complete successful login</li>
+                <li>Open DevTools → Application → Local Storage</li>
+                <li>Modify 'auth_token' value to invalid string (e.g., "invalid_token")</li>
+                <li>Navigate to any dashboard page</li>
+                <li>Monitor Console and Network tabs</li>
+            </ol>
+            <div class="issue">❌ <strong>Expected Issues:</strong> Multiple redirect attempts, console errors</div>
+            
+            <div class="console-code">
+                <strong>Debug Commands:</strong><br>
+                // Manually corrupt token<br>
+                localStorage.setItem('auth_token', 'invalid_token');<br><br>
+                // Then navigate and watch console for errors<br>
+                window.location.href = '/dashboard/users';
+            </div>
+        </div>
+
+        <div class="test-step">
+            <h3>Test 3.2: Network Interruption Test</h3>
+            <ol>
+                <li>Complete successful login</li>
+                <li>In DevTools → Network tab, enable "Offline" mode</li>
+                <li>Try navigating between dashboard pages</li>
+                <li>Re-enable network and check recovery</li>
+            </ol>
+            <div class="issue">❌ <strong>Expected Issues:</strong> Network errors, authentication failures</div>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>📊 Monitoring and Debug Tools</h2>
+        
+        <div class="console-code">
+            <strong>Essential Console Commands for Testing:</strong><br><br>
+            
+            // Check current authentication state<br>
+            console.log('Auth Token:', localStorage.getItem('auth_token'));<br>
+            console.log('Refresh Token:', localStorage.getItem('refresh_token'));<br>
+            console.log('Token Expiry:', localStorage.getItem('token_expiry'));<br><br>
+            
+            // Monitor page navigation<br>
+            window.addEventListener('beforeunload', () => {<br>
+            &nbsp;&nbsp;console.log('Leaving page:', window.location.href);<br>
+            });<br><br>
+            
+            // Monitor localStorage changes<br>
+            const originalSetItem = localStorage.setItem;<br>
+            localStorage.setItem = function(key, value) {<br>
+            &nbsp;&nbsp;console.log('localStorage.setItem:', key, value);<br>
+            &nbsp;&nbsp;originalSetItem.apply(this, arguments);<br>
+            };<br><br>
+            
+            // Check token expiry status<br>
+            function checkTokenExpiry() {<br>
+            &nbsp;&nbsp;const token = localStorage.getItem('auth_token');<br>
+            &nbsp;&nbsp;if (!token) return 'No token';<br>
+            &nbsp;&nbsp;try {<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;const payload = JSON.parse(atob(token.split('.')[1]));<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;const exp = payload.exp * 1000;<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;const now = Date.now();<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;return exp > now ? 'Valid' : 'Expired';<br>
+            &nbsp;&nbsp;} catch (e) {<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;return 'Invalid token format';<br>
+            &nbsp;&nbsp;}<br>
+            }<br>
+            console.log('Token Status:', checkTokenExpiry());
+        </div>
+
+        <div class="network-monitor">
+            <strong>Key Network Requests to Monitor:</strong>
+            <ul>
+                <li><strong>POST /api/auth/login</strong> → Should return 200 with access_token</li>
+                <li><strong>GET /api/auth/me</strong> → Should return 200 with user data</li>
+                <li><strong>POST /api/auth/refresh</strong> → Auto-triggered on 401 responses</li>
+                <li><strong>Any 401 responses</strong> → Should trigger token refresh flow</li>
+                <li><strong>Multiple simultaneous auth requests</strong> → May indicate race conditions</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>📝 Test Results Tracking</h2>
+        
+        <h3>Test Execution Checklist:</h3>
+        <ul class="checklist">
+            <li><input type="checkbox"> Phase 1.1: Fresh Login ✅/❌</li>
+            <li><input type="checkbox"> Phase 1.2: Dashboard Navigation ✅/❌</li>
+            <li><input type="checkbox"> Phase 2.1: Page Refresh ✅/❌</li>
+            <li><input type="checkbox"> Phase 2.2: New Tab Session ✅/❌</li>
+            <li><input type="checkbox"> Phase 2.3: Rapid Navigation ✅/❌</li>
+            <li><input type="checkbox"> Phase 3.1: Token Expiry Simulation ✅/❌</li>
+            <li><input type="checkbox"> Phase 3.2: Network Interruption ✅/❌</li>
+        </ul>
+
+        <h3>Issues Found:</h3>
+        <textarea id="issues-found" rows="8" cols="80" placeholder="Document any issues found during testing...
+Example:
+- Test 2.1: Page refresh redirects to login after 2-3 seconds
+- Test 2.2: New tab always redirects to login
+- Console error: 'Cannot read properties of null'
+- Network: Multiple /api/auth/me requests triggered simultaneously"></textarea>
+
+        <h3>Screenshots/Evidence:</h3>
+        <p>Take screenshots of:</p>
+        <ul>
+            <li>Console errors during failed tests</li>
+            <li>Network tab showing authentication request patterns</li>
+            <li>DevTools Application tab showing localStorage state</li>
+            <li>Any unexpected redirect behavior</li>
+        </ul>
+    </div>
+
+    <script>
+        document.getElementById('test-date').textContent = new Date().toLocaleString();
+        
+        // Auto-save test results to localStorage
+        const textarea = document.getElementById('issues-found');
+        textarea.addEventListener('input', () => {
+            localStorage.setItem('test-results', textarea.value);
+        });
+        
+        // Load previous test results
+        const savedResults = localStorage.getItem('test-results');
+        if (savedResults) {
+            textarea.value = savedResults;
+        }
+    </script>
+</body>
+</html>

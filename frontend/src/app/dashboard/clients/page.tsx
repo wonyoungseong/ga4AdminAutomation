@@ -25,9 +25,9 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Plus, Search, Edit, Trash2, Building2, Users, BarChart3 } from "lucide-react";
-import { apiClient } from "@/lib/api";
+import { typeSafeApiClient } from "@/lib/api-client";
 
-interface Client {
+interface LocalClient {
   id: number;
   name: string;
   company_name: string;
@@ -42,13 +42,13 @@ interface Client {
 }
 
 export default function ClientsPage() {
-  const [clients, setClients] = useState<Client[]>([]);
-  const [filteredClients, setFilteredClients] = useState<Client[]>([]);
+  const [clients, setClients] = useState<LocalClient[]>([]);
+  const [filteredClients, setFilteredClients] = useState<LocalClient[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [selectedClient, setSelectedClient] = useState<Client | null>(null);
+  const [selectedClient, setSelectedClient] = useState<LocalClient | null>(null);
   const [newClient, setNewClient] = useState({
     name: "",
     company_name: "",
@@ -76,8 +76,22 @@ export default function ClientsPage() {
   const fetchClients = async () => {
     try {
       // 실제 API 호출
-      const response = await apiClient.getClients();
-      setClients(response || []);
+      const response = await typeSafeApiClient.getClients();
+      // Transform API clients to LocalClient format 
+      const transformedClients = (response.items || []).map(client => ({
+        id: client.id,
+        name: client.name,
+        company_name: client.name, // Using name as company_name fallback
+        contact_email: client.contact_email || '',
+        contact_phone: '', // Not available in API
+        ga4_property_id: '', // Not available in API
+        is_active: client.is_active,
+        created_at: client.created_at,
+        last_updated: client.updated_at,
+        user_count: 0, // Not available in API
+        description: client.description
+      }));
+      setClients(transformedClients);
     } catch (error) {
       console.error("클라이언트 목록 조회 실패:", error);
       setClients([]);
@@ -88,7 +102,7 @@ export default function ClientsPage() {
 
   const handleCreateClient = async () => {
     try {
-      const response = await apiClient.createClient(newClient);
+      const response = await typeSafeApiClient.createClient(newClient);
       setClients([...clients, response]);
       setNewClient({
         name: "",
@@ -109,7 +123,7 @@ export default function ClientsPage() {
     if (!selectedClient) return;
     
     try {
-      const response = await apiClient.updateClient(selectedClient.id, selectedClient);
+      const response = await typeSafeApiClient.updateClient(selectedClient.id, selectedClient);
       setClients(clients.map(client => 
         client.id === selectedClient.id ? response : client
       ));
@@ -124,7 +138,7 @@ export default function ClientsPage() {
   const handleDeleteClient = async (clientId: number) => {
     if (confirm("정말로 이 클라이언트를 삭제하시겠습니까?")) {
       try {
-        await apiClient.deleteClient(clientId);
+        await typeSafeApiClient.deleteClient(clientId);
         setClients(clients.filter(client => client.id !== clientId));
       } catch (error) {
         console.error("클라이언트 삭제 실패:", error);

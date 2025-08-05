@@ -18,7 +18,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Key, 
@@ -27,59 +26,16 @@ import {
   CheckCircle, 
   XCircle, 
   AlertTriangle,
-  Upload,
   Eye,
-  Settings,
   Activity,
   Building2,
   Search,
-  Filter,
-  Download,
   Trash2,
-  Edit3,
-  Shield,
-  Users
+  Edit3
 } from "lucide-react";
-import { apiClient } from "@/lib/api";
+import { typeSafeApiClient, ApiClientError } from "@/lib/api-client";
 import { useAuth } from "@/contexts/auth-context";
-
-interface ServiceAccount {
-  id: number;
-  name: string;
-  email: string;
-  description?: string;
-  client_id?: number;
-  client_name?: string;
-  project_id: string;
-  private_key_id: string;
-  credentials_file_name: string;
-  is_active: boolean;
-  health_status: 'healthy' | 'warning' | 'error' | 'unknown';
-  last_health_check?: string;
-  properties_count: number;
-  permissions_sync_status: 'synced' | 'pending' | 'error' | 'never';
-  last_sync?: string;
-  created_at: string;
-  updated_at: string;
-}
-
-interface Client {
-  id: number;
-  name: string;
-  description?: string;
-}
-
-interface GA4Property {
-  id: number;
-  property_id: string;
-  display_name: string;
-  service_account_id: number;
-  client_id?: number;
-  client_name?: string;
-  is_active: boolean;
-  last_access_check?: string;
-  created_at: string;
-}
+import { ServiceAccount, Client, GA4Property, HealthStatus, SyncStatus } from "@/types/api";
 
 interface ServiceAccountFormData {
   name: string;
@@ -90,21 +46,21 @@ interface ServiceAccountFormData {
   credentials_file: File | null;
 }
 
-const HEALTH_STATUS_COLORS = {
+const HEALTH_STATUS_COLORS: Record<HealthStatus, string> = {
   healthy: "bg-green-100 text-green-800 border-green-200",
   warning: "bg-yellow-100 text-yellow-800 border-yellow-200", 
   error: "bg-red-100 text-red-800 border-red-200",
   unknown: "bg-gray-100 text-gray-800 border-gray-200"
 };
 
-const HEALTH_STATUS_ICONS = {
+const HEALTH_STATUS_ICONS: Record<HealthStatus, React.ComponentType<{ className?: string }>> = {
   healthy: CheckCircle,
   warning: AlertTriangle,
   error: XCircle,
   unknown: Activity
 };
 
-const SYNC_STATUS_COLORS = {
+const SYNC_STATUS_COLORS: Record<SyncStatus, string> = {
   synced: "bg-green-100 text-green-800",
   pending: "bg-yellow-100 text-yellow-800",
   error: "bg-red-100 text-red-800",
@@ -148,11 +104,15 @@ export default function ServiceAccountsPage() {
     try {
       setIsLoading(true);
       const clientId = clientFilter ? parseInt(clientFilter) : undefined;
-      const response = await apiClient.getServiceAccounts(currentPage, 20, clientId);
-      setServiceAccounts(response.service_accounts || []);
-      setTotalPages(Math.ceil((response.total || 0) / 20));
+      const response = await typeSafeApiClient.getServiceAccounts(currentPage, 20, clientId);
+      setServiceAccounts(response.items || []);
+      setTotalPages(response.pages || Math.ceil((response.total || 0) / 20));
     } catch (error) {
       console.error("서비스 계정 조회 실패:", error);
+      if (error instanceof ApiClientError) {
+        console.error("API Error Details:", error.details);
+      }
+      setServiceAccounts([]);
     } finally {
       setIsLoading(false);
     }
@@ -160,19 +120,26 @@ export default function ServiceAccountsPage() {
 
   const fetchClients = async () => {
     try {
-      const response = await apiClient.getClients(1, 100);
-      setClients(response.clients || []);
+      const response = await typeSafeApiClient.getClients(1, 100);
+      setClients(response.items || []);
     } catch (error) {
       console.error("클라이언트 조회 실패:", error);
+      if (error instanceof ApiClientError) {
+        console.error("API Error Details:", error.details);
+      }
+      setClients([]);
     }
   };
 
   const fetchServiceAccountProperties = async (serviceAccountId: number) => {
     try {
-      const response = await apiClient.getGA4PropertiesManagement(1, 100, serviceAccountId);
-      setServiceAccountProperties(response.properties || []);
+      const response = await typeSafeApiClient.getGA4PropertiesManagement(1, 100, serviceAccountId);
+      setServiceAccountProperties(response.items || []);
     } catch (error) {
       console.error("서비스 계정 Property 조회 실패:", error);
+      if (error instanceof ApiClientError) {
+        console.error("API Error Details:", error.details);
+      }
       setServiceAccountProperties([]);
     }
   };
@@ -210,7 +177,7 @@ export default function ServiceAccountsPage() {
         formDataToSend.append('credentials_file', formData.credentials_file);
       }
 
-      await apiClient.createServiceAccount(formDataToSend);
+      await typeSafeApiClient.createServiceAccount(formDataToSend);
       
       // 폼 초기화
       setFormData({
@@ -248,7 +215,7 @@ export default function ServiceAccountsPage() {
         project_id: formData.project_id
       };
 
-      await apiClient.updateServiceAccount(editingServiceAccount.id, updateData);
+      await typeSafeApiClient.updateServiceAccount(editingServiceAccount.id, updateData);
       
       setFormData({
         name: "",
@@ -276,7 +243,7 @@ export default function ServiceAccountsPage() {
 
     try {
       setIsOperationLoading({ [`delete_${id}`]: true });
-      await apiClient.deleteServiceAccount(id);
+      await typeSafeApiClient.deleteServiceAccount(id);
       await fetchServiceAccounts();
     } catch (error) {
       console.error("서비스 계정 삭제 실패:", error);
@@ -288,7 +255,7 @@ export default function ServiceAccountsPage() {
   const handleDiscoverProperties = async (serviceAccountId: number) => {
     try {
       setIsOperationLoading({ [`discover_${serviceAccountId}`]: true });
-      await apiClient.discoverGA4Properties(serviceAccountId);
+      await typeSafeApiClient.discoverGA4Properties(serviceAccountId);
       await fetchServiceAccounts();
       if (selectedServiceAccount?.id === serviceAccountId) {
         await fetchServiceAccountProperties(serviceAccountId);
@@ -303,7 +270,7 @@ export default function ServiceAccountsPage() {
   const handleSyncPermissions = async (serviceAccountId: number) => {
     try {
       setIsOperationLoading({ [`sync_${serviceAccountId}`]: true });
-      await apiClient.syncServiceAccountPermissions(serviceAccountId);
+      await typeSafeApiClient.syncServiceAccountPermissions(serviceAccountId);
       await fetchServiceAccounts();
     } catch (error) {
       console.error("권한 동기화 실패:", error);
@@ -315,7 +282,7 @@ export default function ServiceAccountsPage() {
   const handleHealthCheck = async (serviceAccountId: number) => {
     try {
       setIsOperationLoading({ [`health_${serviceAccountId}`]: true });
-      await apiClient.testServiceAccountHealth(serviceAccountId);
+      await typeSafeApiClient.testServiceAccountHealth(serviceAccountId);
       await fetchServiceAccounts();
     } catch (error) {
       console.error("상태 확인 실패:", error);
@@ -423,7 +390,7 @@ export default function ServiceAccountsPage() {
               <SelectValue placeholder="선택 안함" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">선택 안함</SelectItem>
+              <SelectItem value="none">선택 안함</SelectItem>
               {clients.map((client) => (
                 <SelectItem key={client.id} value={client.id.toString()}>
                   {client.name}
@@ -546,7 +513,7 @@ export default function ServiceAccountsPage() {
             <Key className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{serviceAccounts.length}</div>
+            <div className="text-2xl font-bold">{serviceAccounts?.length || 0}</div>
             <p className="text-xs text-muted-foreground">등록된 계정</p>
           </CardContent>
         </Card>
@@ -558,7 +525,7 @@ export default function ServiceAccountsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">
-              {serviceAccounts.filter(sa => sa.health_status === 'healthy').length}
+              {serviceAccounts?.filter(sa => sa.health_status === 'healthy')?.length || 0}
             </div>
             <p className="text-xs text-muted-foreground">정상 작동 중</p>
           </CardContent>
@@ -571,7 +538,7 @@ export default function ServiceAccountsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-yellow-600">
-              {serviceAccounts.filter(sa => sa.health_status === 'warning').length}
+              {serviceAccounts?.filter(sa => sa.health_status === 'warning')?.length || 0}
             </div>
             <p className="text-xs text-muted-foreground">주의 필요</p>
           </CardContent>
@@ -614,7 +581,7 @@ export default function ServiceAccountsPage() {
                 <SelectValue placeholder="클라이언트 필터" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">모든 클라이언트</SelectItem>
+                <SelectItem value="all">모든 클라이언트</SelectItem>
                 {clients.map((client) => (
                   <SelectItem key={client.id} value={client.id.toString()}>
                     {client.name}
@@ -627,7 +594,7 @@ export default function ServiceAccountsPage() {
                 <SelectValue placeholder="상태 필터" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">모든 상태</SelectItem>
+                <SelectItem value="all">모든 상태</SelectItem>
                 <SelectItem value="healthy">정상</SelectItem>
                 <SelectItem value="warning">경고</SelectItem>
                 <SelectItem value="error">오류</SelectItem>
@@ -819,7 +786,7 @@ export default function ServiceAccountsPage() {
             <Tabs defaultValue="info" className="w-full">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="info">기본 정보</TabsTrigger>
-                <TabsTrigger value="properties">연결 Property ({serviceAccountProperties.length})</TabsTrigger>
+                <TabsTrigger value="properties">연결 Property ({serviceAccountProperties?.length || 0})</TabsTrigger>
               </TabsList>
               
               <TabsContent value="info" className="space-y-4">
@@ -861,16 +828,16 @@ export default function ServiceAccountsPage() {
                   <div>
                     <Label className="text-sm font-medium">상태</Label>
                     <div className="mt-1">
-                      <Badge className={HEALTH_STATUS_COLORS[selectedServiceAccount.health_status]}>
-                        {getHealthStatusText(selectedServiceAccount.health_status)}
+                      <Badge className={HEALTH_STATUS_COLORS[selectedServiceAccount.health_status || 'unknown']}>
+                        {getHealthStatusText(selectedServiceAccount.health_status || 'unknown')}
                       </Badge>
                     </div>
                   </div>
                   <div>
                     <Label className="text-sm font-medium">동기화 상태</Label>
                     <div className="mt-1">
-                      <Badge className={SYNC_STATUS_COLORS[selectedServiceAccount.permissions_sync_status]}>
-                        {getSyncStatusText(selectedServiceAccount.permissions_sync_status)}
+                      <Badge className={SYNC_STATUS_COLORS[selectedServiceAccount.permissions_sync_status || 'never']}>
+                        {getSyncStatusText(selectedServiceAccount.permissions_sync_status || 'never')}
                       </Badge>
                     </div>
                   </div>

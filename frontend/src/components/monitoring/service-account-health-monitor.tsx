@@ -20,7 +20,7 @@ import {
   Eye,
   EyeOff
 } from "lucide-react";
-import { apiClient } from "@/lib/api";
+import { typeSafeApiClient } from "@/lib/api-client";
 
 interface HealthMetrics {
   service_account_id: number;
@@ -86,7 +86,7 @@ export function ServiceAccountHealthMonitor() {
       setIsLoading(true);
       
       // 서비스 계정 목록 가져오기
-      const serviceAccountsResponse = await apiClient.getServiceAccounts(1, 100);
+      const serviceAccountsResponse = await typeSafeApiClient.getServiceAccounts(1, 100);
       const serviceAccounts = serviceAccountsResponse.service_accounts || [];
       
       // 각 서비스 계정의 상태 확인 (모의 데이터)
@@ -157,7 +157,7 @@ export function ServiceAccountHealthMonitor() {
 
   const performHealthCheck = async (serviceAccountId: number) => {
     try {
-      await apiClient.testServiceAccountHealth(serviceAccountId);
+      await typeSafeApiClient.testServiceAccountHealth(serviceAccountId);
       await fetchHealthData();
     } catch (error) {
       console.error("상태 확인 실패:", error);

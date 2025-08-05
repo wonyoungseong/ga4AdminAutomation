@@ -15,9 +15,9 @@ import {
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search, FileText, Activity, Shield, Users, Calendar } from "lucide-react";
-import { apiClient } from "@/lib/api";
+import { typeSafeApiClient } from "@/lib/api-client";
 
-interface AuditLog {
+interface LocalAuditLog {
   id: number;
   action: string;
   user_email: string;
@@ -33,14 +33,19 @@ interface AuditLog {
 }
 
 export default function AuditPage() {
-  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
-  const [filteredLogs, setFilteredLogs] = useState<AuditLog[]>([]);
+  const [auditLogs, setAuditLogs] = useState<LocalAuditLog[]>([]);
+  const [filteredLogs, setFilteredLogs] = useState<LocalAuditLog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [actionFilter, setActionFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [dateFilter, setDateFilter] = useState("all");
-  const [stats, setStats] = useState<any>(null);
+  const [stats, setStats] = useState<{
+    total_logs?: number;
+    success_logs?: number;
+    failure_logs?: number;
+    warning_logs?: number;
+  } | null>(null);
 
   useEffect(() => {
     fetchAuditLogs();
@@ -61,12 +66,27 @@ export default function AuditPage() {
   const fetchAuditLogs = async () => {
     try {
       // 실제 API 호출 - 필터 적용
-      const filters: any = {};
+      const filters: Record<string, string> = {};
       if (actionFilter !== "all") filters.action = actionFilter;
       if (statusFilter !== "all") filters.status = statusFilter;
       
-      const response = await apiClient.getAuditLogs(1, 100, filters);
-      setAuditLogs(response || []);
+      const response = await typeSafeApiClient.getAuditLogs(1, 100, filters);
+      // Transform the API response to match our local interface
+      const logs = (response?.items || []).map(log => ({
+        id: log.id,
+        action: log.action,
+        user_email: log.actor_email || '',
+        user_name: log.actor_name || '',
+        target_type: log.resource_type,
+        target_id: log.resource_id,
+        target_name: log.resource_id, // Using resource_id as fallback
+        ip_address: log.ip_address || '',
+        user_agent: '', // Not available in API response
+        timestamp: log.created_at,
+        details: log.details,
+        status: 'success' as const // Default status since not available in API
+      }));
+      setAuditLogs(logs);
     } catch (error) {
       console.error("감사 로그 조회 실패:", error);
       setAuditLogs([]);
@@ -77,7 +97,7 @@ export default function AuditPage() {
 
   const fetchAuditStats = async () => {
     try {
-      const response = await apiClient.getAuditLogStats();
+      const response = await typeSafeApiClient.getAuditLogStats();
       setStats(response);
     } catch (error) {
       console.error("감사 로그 통계 조회 실패:", error);

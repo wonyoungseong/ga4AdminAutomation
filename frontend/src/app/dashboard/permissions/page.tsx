@@ -20,7 +20,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Plus, Search, Edit, Trash2, Shield, Clock, CheckCircle, XCircle, ArrowRight, Building2, ChevronDown, ChevronRight, Eye, EyeOff } from "lucide-react";
-import { apiClient } from "@/lib/api";
+import { typeSafeApiClient } from "@/lib/api-client";
 
 interface PropertyPermission {
   property_id: string;
@@ -85,7 +85,7 @@ export default function PermissionsPage() {
 
   const fetchPermissions = async () => {
     try {
-      const data = await apiClient.getPermissions();
+      const data = await typeSafeApiClient.getPermissions();
       setPermissions(data);
     } catch (error) {
       console.error("권한 목록 조회 실패:", error);
@@ -98,7 +98,7 @@ export default function PermissionsPage() {
 
   const handleCreatePermission = async () => {
     try {
-      await apiClient.createPermission(newPermission);
+      await typeSafeApiClient.createPermission(newPermission);
       
       // 목록 새로고침
       await fetchPermissions();
@@ -118,7 +118,7 @@ export default function PermissionsPage() {
 
   const handleUpdatePermissionStatus = async (permissionId: number, status: string, notes?: string) => {
     try {
-      await apiClient.updatePermission(permissionId, { status, notes });
+      await typeSafeApiClient.updatePermission(permissionId, { status, notes });
       
       // 목록 새로고침
       await fetchPermissions();
@@ -130,7 +130,7 @@ export default function PermissionsPage() {
   const handleDeletePermission = async (permissionId: number) => {
     if (confirm("정말로 이 권한 요청을 삭제하시겠습니까?")) {
       try {
-        await apiClient.deletePermission(permissionId);
+        await typeSafeApiClient.deletePermission(permissionId);
         
         // 목록 새로고침
         await fetchPermissions();
@@ -827,7 +827,7 @@ export default function PermissionsPage() {
             <Button onClick={async () => {
               if (editedPermission) {
                 try {
-                  await apiClient.updatePermission(editedPermission.id, {
+                  await typeSafeApiClient.updatePermission(editedPermission.id, {
                     status: editedPermission.status,
                     notes: editedPermission.notes
                   });
