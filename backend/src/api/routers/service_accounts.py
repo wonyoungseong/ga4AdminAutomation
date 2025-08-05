@@ -285,7 +285,7 @@ async def check_service_account_health(
 
 
 @router.post("/{sa_id}/rotate-credentials", response_model=ServiceAccountResponse)
-@require_permissions(["manage_service_accounts", "system_admin"])
+@require_permission(Permission.SERVICE_ACCOUNT_UPDATE)
 async def rotate_service_account_credentials(
     sa_id: int,
     current_user: dict = Depends(get_current_user_with_permissions),

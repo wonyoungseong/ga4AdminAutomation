@@ -13,7 +13,8 @@ import logging
 from contextlib import asynccontextmanager
 import os
 
-from src.api.routers import auth, users, permissions, clients, notifications, audit, ga4, dashboard, ui_components, health, service_accounts, role_management, rbac, enhanced_users
+from src.api.routers import auth, users, permissions, clients, ga4, health, service_accounts, rbac
+# Temporarily exclude problematic routers: notifications, audit, dashboard, ui_components, role_management, enhanced_users
 # from src.api.routers import enhanced_auth, enhanced_users  # Temporarily disabled due to syntax errors
 from src.core.config import settings
 from src.core.database import init_db
@@ -118,16 +119,16 @@ app.include_router(users.router, prefix="/api/users", tags=["Users"])
 app.include_router(users.router, prefix="/api/enhanced-users", tags=["Enhanced Users"])
 app.include_router(permissions.router, prefix="/api/permissions", tags=["Permissions"])
 app.include_router(clients.router, prefix="/api/clients", tags=["Clients"])
-app.include_router(notifications.router, prefix="/api/notifications", tags=["Notifications"])
-app.include_router(audit.router, prefix="/api/audit", tags=["Audit"])
+# app.include_router(notifications.router, prefix="/api/notifications", tags=["Notifications"])
+# app.include_router(audit.router, prefix="/api/audit", tags=["Audit"])
 app.include_router(ga4.router, prefix="/api/ga4", tags=["Google Analytics 4"])
 app.include_router(ga4.router, prefix="/api/ga4-properties", tags=["GA4 Properties"])
 app.include_router(service_accounts.router, prefix="/api/service-accounts", tags=["Service Accounts"])
-app.include_router(role_management.router, prefix="/api/users", tags=["Role Management"])
-app.include_router(dashboard.router, prefix="/api/dashboard", tags=["Dashboard"])
-app.include_router(ui_components.router, prefix="/api/ui", tags=["UI Components"])
+# app.include_router(role_management.router, prefix="/api/users", tags=["Role Management"])
+# app.include_router(dashboard.router, prefix="/api/dashboard", tags=["Dashboard"])
+# app.include_router(ui_components.router, prefix="/api/ui", tags=["UI Components"])
 app.include_router(rbac.router, tags=["RBAC - Role & Permission Management"])
-app.include_router(enhanced_users.router, tags=["Enhanced User Management"])
+# app.include_router(enhanced_users.router, tags=["Enhanced User Management"])
 
 
 # Web routes for serving HTML pages
