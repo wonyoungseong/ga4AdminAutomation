@@ -14,6 +14,7 @@ from sqlalchemy.orm import selectinload
 import secrets
 import hashlib
 import logging
+import re
 
 from ..core.config import settings
 from ..core.database import get_db
@@ -26,11 +27,122 @@ from ..models.schemas import UserLogin, Token, UserResponse
 
 logger = logging.getLogger(__name__)
 
-# Password hashing
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# Enhanced password hashing with higher rounds
+pwd_context = CryptContext(
+    schemes=["bcrypt"], 
+    deprecated="auto",
+    bcrypt__rounds=12  # Higher security rounds
+)
 
 # Token security
 security = HTTPBearer()
+
+
+class PasswordPolicy:
+    """Password policy validator"""
+    
+    MIN_LENGTH = 12
+    MAX_LENGTH = 128
+    
+    @staticmethod
+    def validate_password(password: str) -> tuple[bool, list[str]]:
+        """Validate password against security policy"""
+        errors = []
+        
+        if len(password) < PasswordPolicy.MIN_LENGTH:
+            errors.append(f"Password must be at least {PasswordPolicy.MIN_LENGTH} characters long")
+        
+        if len(password) > PasswordPolicy.MAX_LENGTH:
+            errors.append(f"Password must not exceed {PasswordPolicy.MAX_LENGTH} characters")
+        
+        # Check for uppercase letter
+        if not re.search(r'[A-Z]', password):
+            errors.append("Password must contain at least one uppercase letter")
+        
+        # Check for lowercase letter
+        if not re.search(r'[a-z]', password):
+            errors.append("Password must contain at least one lowercase letter")
+        
+        # Check for digit
+        if not re.search(r'\d', password):
+            errors.append("Password must contain at least one digit")
+        
+        # Check for special character
+        if not re.search(r'[!@#$%^&*(),.?":{}|<>]', password):
+            errors.append("Password must contain at least one special character")
+        
+        # Check for common patterns
+        common_patterns = [
+            r'123', r'abc', r'qwer', r'asdf', r'zxcv',
+            r'password', r'admin', r'user', r'login'
+        ]
+        
+        for pattern in common_patterns:
+            if re.search(pattern, password.lower()):
+                errors.append("Password contains common patterns that are not secure")
+                break
+        
+        # Check for consecutive characters
+        if re.search(r'(.)\1{2,}', password):
+            errors.append("Password cannot contain more than 2 consecutive identical characters")
+        
+        return len(errors) == 0, errors
+    
+    @staticmethod
+    def generate_secure_password() -> str:
+        """Generate a secure password"""
+        import string
+        
+        # Ensure at least one character from each required category
+        uppercase = secrets.choice(string.ascii_uppercase)
+        lowercase = secrets.choice(string.ascii_lowercase)
+        digit = secrets.choice(string.digits)
+        special = secrets.choice('!@#$%^&*(),.?":{}|<>')
+        
+        # Fill the rest with random characters
+        all_chars = string.ascii_letters + string.digits + '!@#$%^&*(),.?":{}|<>'
+        remaining = ''.join(secrets.choice(all_chars) for _ in range(12))
+        
+        # Combine and shuffle
+        password_chars = list(uppercase + lowercase + digit + special + remaining)
+        secrets.SystemRandom().shuffle(password_chars)
+        
+        return ''.join(password_chars)
+
+
+class TokenBlacklist:
+    """JWT token blacklist for secure logout"""
+    
+    def __init__(self, redis_client=None):
+        import redis
+        self.redis_client = redis_client or redis.Redis(host='localhost', port=6379, db=3)
+    
+    async def blacklist_token(self, token: str, expires_at: datetime):
+        """Add token to blacklist"""
+        try:
+            # Calculate TTL (time until token expires)
+            ttl = max(int((expires_at - datetime.utcnow()).total_seconds()), 0)
+            
+            if ttl > 0:
+                # Hash token for privacy
+                token_hash = hashlib.sha256(token.encode()).hexdigest()
+                key = f"blacklisted_token:{token_hash}"
+                self.redis_client.setex(key, ttl, "1")
+                
+                logger.info(f"Token blacklisted with TTL: {ttl} seconds")
+                
+        except Exception as e:
+            logger.error(f"Error blacklisting token: {e}")
+    
+    async def is_token_blacklisted(self, token: str) -> bool:
+        """Check if token is blacklisted"""
+        try:
+            token_hash = hashlib.sha256(token.encode()).hexdigest()
+            key = f"blacklisted_token:{token_hash}"
+            return bool(self.redis_client.exists(key))
+        except Exception as e:
+            logger.error(f"Error checking token blacklist: {e}")
+            return False
 
 
 class EnhancedAuthService:
@@ -38,6 +150,7 @@ class EnhancedAuthService:
     
     def __init__(self, db: AsyncSession):
         self.db = db
+        self.token_blacklist = TokenBlacklist()
     
     @staticmethod
     def hash_password(password: str) -> str:
@@ -85,19 +198,28 @@ class EnhancedAuthService:
         fingerprint_data = f"{user_agent}:{ip_address}:{datetime.utcnow().date()}"
         return hashlib.sha256(fingerprint_data.encode()).hexdigest()[:32]
     
-    @staticmethod
-    def verify_token(token: str, token_type: str = "access") -> Dict[str, Any]:
-        """Verify and decode JWT token"""
+    async def verify_token(self, token: str, token_type: str = "access") -> Dict[str, Any]:
+        """Verify and decode JWT token with blacklist check"""
         try:
+            # Check if token is blacklisted
+            if await self.token_blacklist.is_token_blacklisted(token):
+                raise AuthenticationError("Token has been invalidated")
+            
             payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
             
             # Verify token type
             if payload.get("type") != token_type:
                 raise AuthenticationError(f"Invalid token type. Expected {token_type}")
             
+            # Validate standard claims
+            if not payload.get("sub"):
+                raise AuthenticationError("Invalid token format")
+            
             return payload
+            
         except JWTError as e:
-            raise AuthenticationError(f"Invalid token: {str(e)}")
+            logger.warning(f"JWT verification failed: {e}")
+            raise AuthenticationError("Invalid token")
     
     async def authenticate_user(
         self, 
@@ -211,7 +333,7 @@ class EnhancedAuthService:
     async def get_current_user(self, token: str = Depends(security)) -> Dict[str, Any]:
         """Get current authenticated user from token"""
         try:
-            payload = self.verify_token(token.credentials)
+            payload = await self.verify_token(token.credentials)
             user_id = payload.get("user_id")
             session_id = payload.get("session_id")
             
@@ -443,3 +565,112 @@ class EnhancedAuthService:
             return "Account registration rejected"
         else:
             return "Access denied"
+    
+    async def logout_user(self, token: str, user_id: int, session_id: str) -> bool:
+        """Enhanced logout with token blacklisting"""
+        try:
+            # Decode token to get expiration
+            payload = await self.verify_token(token)
+            exp_timestamp = payload.get('exp')
+            
+            if exp_timestamp:
+                expires_at = datetime.fromtimestamp(exp_timestamp)
+                # Blacklist the token
+                await self.token_blacklist.blacklist_token(token, expires_at)
+            
+            # Terminate user session
+            session = await self.db.execute(
+                select(UserSession).where(
+                    and_(
+                        UserSession.user_id == user_id,
+                        UserSession.session_token == session_id,
+                        UserSession.is_active == True
+                    )
+                )
+            )
+            session = session.scalar_one_or_none()
+            
+            if session:
+                session.terminate_session("user_logout")
+                
+                # Log logout
+                await self._log_user_activity(
+                    user_id=user_id,
+                    activity_type=ActivityType.AUTH,
+                    action="logout_success",
+                    resource_type="session",
+                    resource_id=session_id,
+                    ip_address=session.ip_address,
+                    user_agent=session.user_agent,
+                    session_id=session_id
+                )
+            
+            await self.db.commit()
+            return True
+            
+        except Exception as e:
+            logger.error(f"Logout error: {e}")
+            return False
+    
+    async def change_password(self, user_id: int, current_password: str, new_password: str) -> bool:
+        """Change user password with validation"""
+        try:
+            user = await self.db.get(User, user_id)
+            if not user:
+                raise AuthenticationError("User not found")
+            
+            # Verify current password
+            if not self.verify_password(current_password, user.password_hash):
+                raise AuthenticationError("Current password is incorrect")
+            
+            # Validate new password
+            is_valid, errors = PasswordPolicy.validate_password(new_password)
+            if not is_valid:
+                raise ValidationError(f"Password validation failed: {'; '.join(errors)}")
+            
+            # Check if new password is different from current
+            if self.verify_password(new_password, user.password_hash):
+                raise ValidationError("New password must be different from current password")
+            
+            # Update password
+            user.password_hash = self.hash_password(new_password)
+            user.updated_at = datetime.utcnow()
+            
+            # Terminate all existing sessions except current one
+            await self._terminate_user_sessions(user_id, exclude_current=True)
+            
+            # Log password change
+            await self._log_user_activity(
+                user_id=user_id,
+                activity_type=ActivityType.AUTH,
+                action="password_changed",
+                resource_type="user",
+                resource_id=str(user_id)
+            )
+            
+            await self.db.commit()
+            return True
+            
+        except (AuthenticationError, ValidationError):
+            raise
+        except Exception as e:
+            logger.error(f"Password change error: {e}")
+            raise AuthenticationError("Password change failed")
+    
+    async def _terminate_user_sessions(self, user_id: int, exclude_current: bool = False, current_session_id: str = None):
+        """Terminate user sessions"""
+        query = select(UserSession).where(
+            and_(
+                UserSession.user_id == user_id,
+                UserSession.is_active == True
+            )
+        )
+        
+        if exclude_current and current_session_id:
+            query = query.where(UserSession.session_token != current_session_id)
+        
+        result = await self.db.execute(query)
+        sessions = result.scalars().all()
+        
+        for session in sessions:
+            session.terminate_session("security_logout")

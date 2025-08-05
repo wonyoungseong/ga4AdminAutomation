@@ -20,7 +20,7 @@ from ..core.exceptions import (
     ValidationError, BusinessRuleViolationError, ExternalApiError,
     ResourceNotFoundError
 )
-from .google_api_service import GoogleApiService
+from .google_api_service import GoogleAnalyticsService
 from .audit_service import AuditService
 
 
@@ -30,7 +30,7 @@ class GA4PropertyDiscoveryService:
     def __init__(
         self, 
         db: AsyncSession,
-        google_api_service: GoogleApiService,
+        google_api_service: GoogleAnalyticsService,
         audit_service: AuditService
     ):
         self.db = db

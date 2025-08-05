@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>인증 디버깅 테스트</title>
+</head>
+<body>
+    <h1>GA4 Admin 인증 디버깅</h1>
+    
+    <div>
+        <h2>1. 로그인 테스트</h2>
+        <button onclick="testLogin()">로그인 테스트</button>
+        <div id="loginResult"></div>
+    </div>
+    
+    <div>
+        <h2>2. 인증 상태 확인</h2>
+        <button onclick="checkAuthState()">인증 상태 확인</button>
+        <div id="authResult"></div>
+    </div>
+    
+    <div>
+        <h2>3. Permissions API 테스트</h2>
+        <button onclick="testPermissionsAPI()">Permissions API 호출</button>
+        <div id="permissionsResult"></div>
+    </div>
+    
+    <div>
+        <h2>4. 대시보드 페이지 테스트</h2>
+        <a href="http://localhost:3000/dashboard" target="_blank">대시보드 홈</a> |
+        <a href="http://localhost:3000/dashboard/users" target="_blank">사용자</a> |
+        <a href="http://localhost:3000/dashboard/permissions" target="_blank">권한</a>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8000';
+        
+        async function testLogin() {
+            try {
+                const response = await fetch(`${API_BASE}/api/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: 'admin@test.com',
+                        password: 'admin123'
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    localStorage.setItem('auth_token', data.access_token);
+                    localStorage.setItem('refresh_token', data.refresh_token);
+                    
+                    // JWT 토큰에서 만료 시간 추출
+                    const payload = JSON.parse(atob(data.access_token.split('.')[1]));
+                    localStorage.setItem('token_expiry', payload.exp.toString());
+                    
+                    document.getElementById('loginResult').innerHTML = `
+                        <div style="color: green;">
+                            ✅ 로그인 성공<br>
+                            사용자: ${data.user.name} (${data.user.role})<br>
+                            토큰 만료: ${new Date(payload.exp * 1000).toLocaleString()}
+                        </div>`;
+                } else {
+                    document.getElementById('loginResult').innerHTML = `
+                        <div style="color: red;">❌ 로그인 실패: ${data.detail || data.message}</div>`;
+                }
+            } catch (error) {
+                document.getElementById('loginResult').innerHTML = `
+                    <div style="color: red;">❌ 네트워크 오류: ${error.message}</div>`;
+            }
+        }
+        
+        function checkAuthState() {
+            const token = localStorage.getItem('auth_token');
+            const expiry = localStorage.getItem('token_expiry');
+            const now = Math.floor(Date.now() / 1000);
+            
+            let status = '';
+            if (!token) {
+                status = '❌ 토큰 없음';
+            } else if (!expiry) {
+                status = '⚠️ 만료 시간 정보 없음';
+            } else if (now >= parseInt(expiry)) {
+                status = '❌ 토큰 만료됨';
+            } else {
+                status = '✅ 토큰 유효';
+            }
+            
+            document.getElementById('authResult').innerHTML = `
+                <div>
+                    상태: ${status}<br>
+                    토큰: ${token ? token.substring(0, 50) + '...' : '없음'}<br>
+                    만료 시간: ${expiry ? new Date(parseInt(expiry) * 1000).toLocaleString() : '없음'}<br>
+                    현재 시간: ${new Date().toLocaleString()}
+                </div>`;
+        }
+        
+        async function testPermissionsAPI() {
+            const token = localStorage.getItem('auth_token');
+            
+            if (!token) {
+                document.getElementById('permissionsResult').innerHTML = 
+                    '<div style="color: red;">❌ 인증 토큰이 없습니다. 먼저 로그인하세요.</div>';
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/permissions/?skip=0&limit=50`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    document.getElementById('permissionsResult').innerHTML = `
+                        <div style="color: green;">
+                            ✅ Permissions API 성공<br>
+                            응답: ${JSON.stringify(data, null, 2)}
+                        </div>`;
+                } else {
+                    document.getElementById('permissionsResult').innerHTML = `
+                        <div style="color: red;">
+                            ❌ Permissions API 실패 (${response.status})<br>
+                            오류: ${JSON.stringify(data, null, 2)}
+                        </div>`;
+                }
+            } catch (error) {
+                document.getElementById('permissionsResult').innerHTML = `
+                    <div style="color: red;">❌ 네트워크 오류: ${error.message}</div>`;
+            }
+        }
+    </script>
+</body>
+</html>

@@ -18,6 +18,9 @@ export const mockUser: User = {
 export const mockAuthenticatedUser: User = {
   ...mockUser,
   role: 'Admin',
+  status: 'active',
+  registration_status: 'approved',
+  is_representative: false,
 }
 
 // Mock unauthenticated state
@@ -62,19 +65,23 @@ export const AuthWrapper: React.FC<AuthWrapperProps> = ({
   mockAuthState 
 }) => {
   if (mockAuthState) {
-    // Mock the auth context value
+    // Mock the auth context using React.createContext
+    const MockedAuthContext = React.createContext(mockAuthState);
+    
     const MockedAuthProvider = ({ children }: { children: React.ReactNode }) => {
       const mockLogin = jest.fn().mockResolvedValue(true)
       const mockLogout = jest.fn()
       
+      const contextValue = {
+        ...mockAuthState,
+        login: mockLogin,
+        logout: mockLogout,
+      }
+      
       return (
-        <div data-testid="mocked-auth-provider">
-          {React.cloneElement(children as ReactElement, {
-            ...mockAuthState,
-            login: mockLogin,
-            logout: mockLogout,
-          })}
-        </div>
+        <MockedAuthContext.Provider value={contextValue}>
+          {children}
+        </MockedAuthContext.Provider>
       )
     }
     

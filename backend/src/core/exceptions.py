@@ -211,6 +211,10 @@ class ConfigurationError(AppException):
 
 # Aliases for backward compatibility
 PermissionDeniedError = AuthorizationError
+BusinessRuleViolationError = ValidationError
+DuplicateResourceError = ConflictError
+UnauthorizedError = AuthenticationError
+ResourceNotFoundError = NotFoundError
 
 
 def create_http_exception(exception: AppException):

@@ -88,6 +88,19 @@ jest.mock('next/navigation', () => ({
 // Mock fetch for API testing
 global.fetch = jest.fn()
 
+// Mock HTMLFormElement.prototype.requestSubmit for jsdom
+Object.defineProperty(HTMLFormElement.prototype, 'requestSubmit', {
+  value: function(submitter?: HTMLElement) {
+    if (submitter) {
+      submitter.click()
+    } else {
+      this.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    }
+  },
+  writable: true,
+  configurable: true
+})
+
 // Korean text testing utilities
 declare global {
   namespace jest {

@@ -1,0 +1,79 @@
+[
+  {
+    "test_name": "Backend Health Check",
+    "status": "PASS",
+    "details": "Service: GA4 Admin Automation System, Version: 2.0.0-legacy",
+    "timestamp": "2025-08-04T09:34:13.325351",
+    "screenshot": ""
+  },
+  {
+    "test_name": "Legacy Services Status",
+    "status": "PASS",
+    "details": "Scheduler: True, Services: 4, DB Tables: 4",
+    "timestamp": "2025-08-04T09:34:13.326553",
+    "screenshot": ""
+  },
+  {
+    "test_name": "Authentication Flow",
+    "status": "PASS",
+    "details": "User: Test User (admin)",
+    "timestamp": "2025-08-04T09:34:13.328003",
+    "screenshot": ""
+  },
+  {
+    "test_name": "API Test Endpoint",
+    "status": "PASS",
+    "details": "GA4 Admin Automation API is working!",
+    "timestamp": "2025-08-04T09:34:13.330014",
+    "screenshot": ""
+  },
+  {
+    "test_name": "Users API Endpoint",
+    "status": "PASS",
+    "details": "HTTP 404",
+    "timestamp": "2025-08-04T09:34:13.330244",
+    "screenshot": ""
+  },
+  {
+    "test_name": "Database Legacy Tables",
+    "status": "PASS",
+    "details": "All 4 legacy tables found",
+    "timestamp": "2025-08-04T09:34:13.333201",
+    "screenshot": ""
+  },
+  {
+    "test_name": "Database Data Query",
+    "status": "PASS",
+    "details": "GA4 Properties: 1 records",
+    "timestamp": "2025-08-04T09:34:13.333275",
+    "screenshot": ""
+  },
+  {
+    "test_name": "Frontend Page Load",
+    "status": "PASS",
+    "details": "Title: GA4 관리자 - 권한 관리 시스템",
+    "timestamp": "2025-08-04T09:34:14.776858",
+    "screenshot": ""
+  },
+  {
+    "test_name": "Frontend Screenshot",
+    "status": "PASS",
+    "details": "Screenshot saved: /tmp/frontend_test.png",
+    "timestamp": "2025-08-04T09:34:14.832772",
+    "screenshot": ""
+  },
+  {
+    "test_name": "Frontend Loading State",
+    "status": "INFO",
+    "details": "No loading spinner found",
+    "timestamp": "2025-08-04T09:34:14.835325",
+    "screenshot": ""
+  },
+  {
+    "test_name": "Korean Localization",
+    "status": "INFO",
+    "details": "Korean loading text not found",
+    "timestamp": "2025-08-04T09:34:14.836978",
+    "screenshot": ""
+  }
+]

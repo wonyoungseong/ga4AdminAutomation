@@ -7,8 +7,8 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ...core.database import get_async_db
-from ...core.auth_dependencies import get_current_user, require_role
+from ...core.database import get_db
+from ...core.auth_dependencies import get_current_user, require_roles
 from ...models.db_models import User, UserRole, PermissionRequestStatus
 from ...models.schemas import (
     PermissionRequestCreate, PermissionRequestResponse, PermissionRequestUpdate,
@@ -17,7 +17,7 @@ from ...models.schemas import (
 )
 from ...services.permission_request_service import PermissionRequestService
 from ...services.client_assignment_service import ClientAssignmentService
-from ...services.google_api_service import GoogleApiService
+from ...services.google_api_service import GoogleAnalyticsService
 from ...services.audit_service import AuditService
 from ...core.exceptions import (
     ValidationError, BusinessRuleViolationError, DuplicateResourceError,
@@ -29,11 +29,11 @@ router = APIRouter(prefix="/permission-requests", tags=["Permission Requests"])
 
 
 async def get_permission_request_service(
-    db: AsyncSession = Depends(get_async_db)
+    db: AsyncSession = Depends(get_db)
 ) -> PermissionRequestService:
     """Dependency to get PermissionRequestService"""
     client_assignment_service = ClientAssignmentService(db)
-    google_api_service = GoogleApiService()
+    google_api_service = GoogleAnalyticsService()
     audit_service = AuditService(db)
     
     return PermissionRequestService(

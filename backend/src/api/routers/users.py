@@ -1,5 +1,5 @@
 """
-Users API routes
+Users API routes with RBAC protection
 """
 
 from fastapi import APIRouter, Depends, HTTPException, status, Query
@@ -7,41 +7,33 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Annotated, Optional, List
 
 from ...core.database import get_db
-from ...core.exceptions import NotFoundError, AuthorizationError
+from ...core.rbac import (
+    Permission, require_permission, get_current_user_with_permissions
+)
+from ...core.exceptions import AppException
 from ...models.schemas import UserResponse, UserUpdate, UserCreate, PaginatedResponse
-from ...models.db_models import UserRole, UserStatus
-from ...services.auth_service import AuthService
+from ...models.db_models import User, UserRole, UserStatus
 from ...services.user_service import UserService
 
 router = APIRouter()
 
 
 @router.get("/", response_model=List[UserResponse])
+@require_permission(Permission.USER_READ)
 async def list_users(
-    skip: int = Query(0, ge=0),
-    limit: int = Query(100, ge=1, le=1000),
-    role: Optional[UserRole] = None,
-    status: Optional[UserStatus] = None,
-    current_user: Annotated[dict, Depends(AuthService.get_current_user)] = None,
-    db: Annotated[AsyncSession, Depends(get_db)] = None
+    skip: int = Query(0, ge=0, description="Number of records to skip"),
+    limit: int = Query(100, ge=1, le=1000, description="Maximum number of records to return"),
+    role: Optional[UserRole] = Query(None, description="Filter by user role"),
+    status: Optional[UserStatus] = Query(None, description="Filter by user status"),
+    current_user: dict = Depends(get_current_user_with_permissions),
+    db: AsyncSession = Depends(get_db)
 ):
-    """List users with optional filters"""
+    """
+    List users with optional filters.
+    
+    Required permissions: USER_READ (ADMIN+ only)
+    """
     try:
-        # Only admin and super_admin can list users
-        if not current_user:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Not authenticated"
-            )
-        
-        user_role = current_user.get("role")
-        # Allow admin and super_admin roles
-        if user_role not in ["admin", "super_admin", "Admin", "Super Admin"]:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Insufficient permissions to list users. Role: {user_role}"
-            )
-        
         user_service = UserService(db)
         users = await user_service.list_users(
             skip=skip,
@@ -50,8 +42,6 @@ async def list_users(
             status=status
         )
         return users
-    except HTTPException:
-        raise
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -60,29 +50,49 @@ async def list_users(
 
 
 @router.post("/", response_model=UserResponse)
+@require_permission(Permission.USER_CREATE)
 async def create_user(
     user_data: UserCreate,
-    current_user: Annotated[dict, Depends(AuthService.get_current_user)] = None,
-    db: Annotated[AsyncSession, Depends(get_db)] = None
+    current_user: dict = Depends(get_current_user_with_permissions),
+    db: AsyncSession = Depends(get_db)
 ):
-    """Create a new user (admin only)"""
+    """
+    Create a new user (admin only).
+    
+    Required permissions: USER_CREATE (ADMIN+ only)
+    """
     try:
-        # Only admin and super_admin can create users directly
-        if not current_user:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Not authenticated"
-            )
-        
-        user_role = current_user.get("role")
-        if user_role not in ["admin", "super_admin", "Admin", "Super Admin"]:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Insufficient permissions to create users. Role: {user_role}"
-            )
-        
         user_service = UserService(db)
         user = await user_service.create_user(user_data, is_admin_creation=True)
+        return user
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Internal error: {str(e)}"
+        )
+
+
+@router.get("/{user_id}", response_model=UserResponse)
+@require_permission(Permission.USER_READ, resource_ownership=True, allow_self_access=True)
+async def get_user(
+    user_id: int,
+    current_user: dict = Depends(get_current_user_with_permissions),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Get user by ID.
+    
+    Required permissions: USER_READ (ADMIN+ for others, own profile allowed)
+    """
+    try:
+        user_service = UserService(db)
+        user = await user_service.get_user_by_id(user_id)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"User with ID {user_id} not found"
+            )
+        
         return user
     except HTTPException:
         raise
@@ -93,80 +103,57 @@ async def create_user(
         )
 
 
-@router.get("/{user_id}", response_model=UserResponse)
-async def get_user(
-    user_id: int,
-    current_user: Annotated[dict, Depends(AuthService.get_current_user)] = None,
-    db: Annotated[AsyncSession, Depends(get_db)] = None
-):
-    """Get user by ID"""
-    # Users can only view their own profile or admins can view any
-    if (current_user.get("role") not in ["admin", "super_admin"] and 
-        current_user.get("user_id") != user_id):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Insufficient permissions to view this user"
-        )
-    
-    user_service = UserService(db)
-    user = await user_service.get_user_by_id(user_id)
-    
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found"
-        )
-    
-    return user
-
-
 @router.put("/{user_id}", response_model=UserResponse)
+@require_permission(Permission.USER_UPDATE, resource_ownership=True, allow_self_access=True)
 async def update_user(
     user_id: int,
     user_data: UserUpdate,
-    current_user: Annotated[dict, Depends(AuthService.get_current_user)] = None,
-    db: Annotated[AsyncSession, Depends(get_db)] = None
+    current_user: dict = Depends(get_current_user_with_permissions),
+    db: AsyncSession = Depends(get_db)
 ):
-    """Update user"""
-    # Check permissions - only admins or the user themselves can update
-    current_role = current_user.get("role")
-    if current_role not in ["super_admin", "admin"] and current_user.get("user_id") != user_id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Insufficient permissions"
-        )
+    """
+    Update user information.
     
+    Required permissions: USER_UPDATE (ADMIN+ for others, own profile allowed)
+    """
     try:
         user_service = UserService(db)
         user = await user_service.update_user(user_id, user_data)
         return user
-    except NotFoundError as e:
+    except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=e.message
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Internal error: {str(e)}"
         )
 
 
 @router.delete("/{user_id}")
+@require_permission(Permission.USER_DELETE)
 async def delete_user(
     user_id: int,
-    current_user: Annotated[dict, Depends(AuthService.get_current_user)] = None,
-    db: Annotated[AsyncSession, Depends(get_db)] = None
+    current_user: dict = Depends(get_current_user_with_permissions),
+    db: AsyncSession = Depends(get_db)
 ):
-    """Delete user"""
-    # Only super admins can delete users
-    if current_user.get("role") != "super_admin":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Insufficient permissions"
-        )
+    """
+    Delete user (SUPER_ADMIN only).
     
+    Required permissions: USER_DELETE (SUPER_ADMIN only)
+    """
     try:
+        # Prevent self-deletion
+        if current_user["user_id"] == user_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Cannot delete your own account"
+            )
+        
         user_service = UserService(db)
         await user_service.delete_user(user_id)
-        return {"message": "User deleted successfully"}
-    except NotFoundError as e:
+        return {"message": f"User {user_id} deleted successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=e.message
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Internal error: {str(e)}"
         )

@@ -1,0 +1,55 @@
+# Claude Code Ignore File
+# 이 파일에 나열된 디렉토리와 파일들은 Claude가 자동으로 제외합니다
+
+# Legacy and deprecated folders
+legacy-project/orc/
+deprecated/
+
+# Test and temporary files
+test_*.py
+*_test.py
+test_*.json
+*_test_*.json
+screenshots/
+test-results/
+playwright-report/
+temp/
+tmp/
+
+# Build and dependency directories
+node_modules/
+.next/
+out/
+build/
+dist/
+venv/
+env/
+.venv/
+__pycache__/
+
+# Log files
+*.log
+logs/
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Environment and credentials
+.env*
+credentials.json
+token.pickle
+config/*.json
+ga4-*.json
+
+# OS and editor files
+.DS_Store
+.idea/
+.vscode/
+.cursor/
+
+# Coverage and cache
+htmlcov/
+.coverage
+.pytest_cache/

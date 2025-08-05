@@ -15,11 +15,36 @@ from ..core.database import Base
 
 
 class UserRole(str, enum.Enum):
-    """User role enumeration"""
-    SUPER_ADMIN = "Super Admin"
-    ADMIN = "Admin"
-    REQUESTER = "Requester"
-    VIEWER = "Viewer"
+    """Enhanced user role enumeration with hierarchy"""
+    SUPER_ADMIN = "Super Admin"      # System-wide control
+    ADMIN = "Admin"                  # Full system operations
+    MANAGER = "Manager"              # Client-specific management
+    USER = "User"                    # Standard operations within assigned clients
+    CLIENT = "Client"                # Limited read-only access to own data
+    VIEWER = "Viewer"                # Read-only access (legacy compatibility)
+    REQUESTER = "Requester"          # Request permissions (legacy compatibility)
+    
+    @classmethod
+    def get_hierarchy_level(cls, role: 'UserRole') -> int:
+        """Get numeric hierarchy level for role comparison"""
+        hierarchy = {
+            cls.SUPER_ADMIN: 100,
+            cls.ADMIN: 80,
+            cls.MANAGER: 60,
+            cls.USER: 40,
+            cls.CLIENT: 20,
+            cls.REQUESTER: 20,  # Same level as CLIENT
+            cls.VIEWER: 10
+        }
+        return hierarchy.get(role, 0)
+    
+    def can_manage(self, target_role: 'UserRole') -> bool:
+        """Check if this role can manage the target role"""
+        return self.get_hierarchy_level(self) > self.get_hierarchy_level(target_role)
+    
+    def inherits_from(self, parent_role: 'UserRole') -> bool:
+        """Check if this role inherits permissions from parent role"""
+        return self.get_hierarchy_level(self) >= self.get_hierarchy_level(parent_role)
 
 
 class UserStatus(str, enum.Enum):
@@ -130,6 +155,86 @@ class AccessLevel(str, enum.Enum):
     FULL = "full"
 
 
+class Permission(str, enum.Enum):
+    """System permissions enumeration"""
+    # User Management
+    USER_CREATE = "user:create"
+    USER_READ = "user:read"
+    USER_UPDATE = "user:update"
+    USER_DELETE = "user:delete"
+    USER_APPROVE = "user:approve"
+    USER_ASSIGN_ROLE = "user:assign_role"
+    
+    # Client Management
+    CLIENT_CREATE = "client:create"
+    CLIENT_READ = "client:read"
+    CLIENT_UPDATE = "client:update"
+    CLIENT_DELETE = "client:delete"
+    CLIENT_ASSIGN_USER = "client:assign_user"
+    
+    # GA4 Property Management
+    GA4_PROPERTY_CREATE = "ga4_property:create"
+    GA4_PROPERTY_READ = "ga4_property:read"
+    GA4_PROPERTY_UPDATE = "ga4_property:update"
+    GA4_PROPERTY_DELETE = "ga4_property:delete"
+    
+    # Permission Management
+    PERMISSION_CREATE = "permission:create"
+    PERMISSION_READ = "permission:read"
+    PERMISSION_UPDATE = "permission:update"
+    PERMISSION_DELETE = "permission:delete"
+    PERMISSION_APPROVE = "permission:approve"
+    PERMISSION_REVOKE = "permission:revoke"
+    
+    # Service Account Management
+    SERVICE_ACCOUNT_CREATE = "service_account:create"
+    SERVICE_ACCOUNT_READ = "service_account:read"
+    SERVICE_ACCOUNT_UPDATE = "service_account:update"
+    SERVICE_ACCOUNT_DELETE = "service_account:delete"
+    
+    # Audit and Reporting
+    AUDIT_READ = "audit:read"
+    AUDIT_EXPORT = "audit:export"
+    REPORT_GENERATE = "report:generate"
+    REPORT_DOWNLOAD = "report:download"
+    
+    # System Administration
+    SYSTEM_CONFIG = "system:config"
+    SYSTEM_HEALTH = "system:health"
+    SYSTEM_BACKUP = "system:backup"
+    
+    @classmethod
+    def get_resource_permissions(cls, resource: str) -> list['Permission']:
+        """Get all permissions for a specific resource"""
+        return [perm for perm in cls if perm.value.startswith(f"{resource}:")]
+    
+    @property
+    def resource(self) -> str:
+        """Get resource name from permission"""
+        return self.value.split(":")[0]
+    
+    @property 
+    def action(self) -> str:
+        """Get action name from permission"""
+        return self.value.split(":")[1]
+
+
+class PermissionScope(str, enum.Enum):
+    """Permission scope enumeration"""
+    SYSTEM = "system"          # System-wide access
+    CLIENT = "client"          # Client-specific access
+    OWN = "own"                # Own data only
+    ASSIGNED = "assigned"      # Assigned clients/resources only
+
+
+class PermissionContext(str, enum.Enum):
+    """Permission context enumeration"""
+    ALL = "all"                # All resources
+    ASSIGNED_CLIENTS = "assigned_clients"  # Only assigned clients
+    OWN_DATA = "own_data"      # Own data only
+    SAME_CLIENT = "same_client" # Same client users/resources
+
+
 class User(Base):
     """User model"""
     __tablename__ = "users"
@@ -203,6 +308,12 @@ class User(Base):
     )
     user_sessions: Mapped[list["UserSession"]] = relationship(
         "UserSession", back_populates="user", cascade="all, delete-orphan"
+    )
+    role_assignments: Mapped[list["UserRoleAssignment"]] = relationship(
+        "UserRoleAssignment", back_populates="user", foreign_keys="UserRoleAssignment.user_id", cascade="all, delete-orphan"
+    )
+    permission_overrides: Mapped[list["UserPermissionOverride"]] = relationship(
+        "UserPermissionOverride", back_populates="user", foreign_keys="UserPermissionOverride.user_id", cascade="all, delete-orphan"
     )
     
     @property

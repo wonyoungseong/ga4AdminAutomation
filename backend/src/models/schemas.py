@@ -3,7 +3,7 @@ Pydantic schemas for API requests and responses
 """
 
 from datetime import datetime
-from typing import Optional, List, Generic, TypeVar
+from typing import Optional, List, Generic, TypeVar, Dict, Any
 from pydantic import BaseModel, EmailStr, Field, ConfigDict
 
 from .db_models import (
@@ -66,6 +66,128 @@ class Token(BaseModel):
     refresh_token: str
     token_type: str = "bearer"
     expires_in: int
+
+
+# ==================== RBAC SCHEMAS ====================
+
+class PermissionCheck(BaseModel):
+    """Schema for permission checking requests"""
+    permission: str = Field(..., description="Permission to check (e.g., 'user:create')")
+    resource_id: Optional[str] = Field(None, description="Specific resource ID")
+    client_id: Optional[int] = Field(None, description="Client context")
+    context: Optional[str] = Field(None, description="Permission context")
+
+
+class PermissionCheckResponse(BaseModel):
+    """Schema for permission checking responses"""
+    has_permission: bool
+    permission: str
+    user_id: int
+    resource_id: Optional[str] = None
+    client_id: Optional[int] = None
+    checked_at: str
+
+
+class BulkPermissionCheck(BaseModel):
+    """Schema for bulk permission checking"""
+    permissions: List[str] = Field(..., description="List of permissions to check")
+    client_id: Optional[int] = Field(None, description="Client context")
+
+
+class BulkPermissionCheckResponse(BaseModel):
+    """Schema for bulk permission checking responses"""
+    permissions: Dict[str, bool]
+    user_id: int
+    client_id: Optional[int] = None
+    checked_at: str
+
+
+class UserPermissionInfo(BaseModel):
+    """Schema for user permission information"""
+    permission: str
+    source: str  # 'role', 'override'
+    source_detail: str  # role name or 'granted'/'denied'
+    scope: str  # 'system', 'client', 'own', 'assigned'
+    context: str  # 'all', 'assigned_clients', 'own_data', 'same_client'
+    client_id: Optional[int] = None
+    resource_id: Optional[str] = None
+    expires_at: Optional[str] = None
+
+
+class UserPermissionsResponse(BaseModel):
+    """Schema for user permissions query response"""
+    user_id: int
+    client_id: Optional[int] = None
+    permissions: List[UserPermissionInfo]
+    total_permissions: int
+    queried_at: str
+
+
+class UserRoleInfo(BaseModel):
+    """Schema for user role information"""
+    role: str
+    source: str  # 'primary', 'assignment'
+    client_id: Optional[int] = None
+    assigned_at: str
+    expires_at: Optional[str] = None
+
+
+class UserRolesResponse(BaseModel):
+    """Schema for user roles query response"""
+    user_id: int
+    client_id: Optional[int] = None
+    roles: List[UserRoleInfo]
+    total_roles: int
+    queried_at: str
+
+
+class RoleAssignmentRequest(BaseModel):
+    """Schema for role assignment requests"""
+    client_id: Optional[int] = Field(None, description="Client context for role")
+    scope: str = Field("system", description="Permission scope")
+    expires_days: Optional[int] = Field(None, description="Role expiration in days")
+
+
+class RoleAssignmentResponse(BaseModel):
+    """Schema for role assignment responses"""
+    message: str
+    user_id: int
+    role: str
+    client_id: Optional[int] = None
+    scope: str
+    expires_at: Optional[str] = None
+    assigned_by: int
+    assigned_at: str
+
+
+class RoleInfo(BaseModel):
+    """Schema for role information"""
+    role: str
+    level: int
+    description: str
+    can_manage: List[str]
+    inherits_from: List[str]
+
+
+class RolesListResponse(BaseModel):
+    """Schema for roles list response"""
+    roles: List[RoleInfo]
+    total_roles: int
+
+
+class PermissionInfo(BaseModel):
+    """Schema for permission information"""
+    permission: str
+    resource: str
+    action: str
+    description: str
+
+
+class PermissionsListResponse(BaseModel):
+    """Schema for permissions list response"""
+    permissions: List[PermissionInfo]
+    resources: Dict[str, List[PermissionInfo]]
+    total_permissions: int
 
 
 # User management schemas

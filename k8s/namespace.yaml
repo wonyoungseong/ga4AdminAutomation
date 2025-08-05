@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ga4-admin
+  labels:
+    app: ga4-admin
+    environment: production

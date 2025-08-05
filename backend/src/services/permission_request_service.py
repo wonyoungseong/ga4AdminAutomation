@@ -23,7 +23,7 @@ from ..core.exceptions import (
     UnauthorizedError, ResourceNotFoundError
 )
 from .client_assignment_service import ClientAssignmentService
-from .google_api_service import GoogleApiService
+from .google_api_service import GoogleAnalyticsService
 from .audit_service import AuditService
 
 
@@ -34,7 +34,7 @@ class PermissionRequestService:
         self, 
         db: AsyncSession,
         client_assignment_service: ClientAssignmentService,
-        google_api_service: GoogleApiService,
+        google_api_service: GoogleAnalyticsService,
         audit_service: AuditService
     ):
         self.db = db
