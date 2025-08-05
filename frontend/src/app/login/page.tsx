@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Label } from "@/components/ui/label";
 import { LayoutDashboard } from "lucide-react";
+import Link from "next/link";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -27,7 +28,17 @@ export default function LoginPage() {
     try {
       const success = await login(email, password);
       if (success) {
-        router.push("/dashboard");
+        // Check if there's a redirect destination from before login
+        const redirectTo = typeof window !== 'undefined' 
+          ? sessionStorage.getItem('redirectAfterLogin') 
+          : null;
+        
+        if (redirectTo && redirectTo !== '/login') {
+          sessionStorage.removeItem('redirectAfterLogin');
+          router.push(redirectTo);
+        } else {
+          router.push("/dashboard");
+        }
       } else {
         setError("이메일 또는 비밀번호가 올바르지 않습니다.");
       }
@@ -72,7 +83,12 @@ export default function LoginPage() {
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="password">비밀번호</Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="password">비밀번호</Label>
+                  <Link href="/reset-password" className="text-sm text-primary hover:underline">
+                    비밀번호를 잊으셨나요?
+                  </Link>
+                </div>
                 <Input
                   id="password"
                   type="password"
@@ -98,15 +114,24 @@ export default function LoginPage() {
                 {isLoading ? "로그인 중..." : "로그인"}
               </Button>
             </form>
+
+            <div className="mt-6 text-center">
+              <p className="text-sm text-muted-foreground">
+                계정이 없으신가요?{" "}
+                <Link href="/register" className="text-primary hover:underline">
+                  계정 생성하기
+                </Link>
+              </p>
+            </div>
           </CardContent>
         </Card>
 
         <div className="text-center text-sm text-gray-500">
           <div className="space-y-1">
             <p>💡 테스트 계정</p>
-            <p><strong>관리자:</strong> admin@example.com / admin123</p>
-            <p><strong>매니저:</strong> manager@example.com / manager123</p>
-            <p><strong>사용자:</strong> user@example.com / user123</p>
+            <p><strong>관리자:</strong> admin@test.com / admin123</p>
+            <p><strong>매니저:</strong> manager@test.com / manager123</p>
+            <p><strong>사용자:</strong> user@test.com / user123</p>
           </div>
         </div>
       </div>
