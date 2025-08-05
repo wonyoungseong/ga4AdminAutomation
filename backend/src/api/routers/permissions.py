@@ -13,17 +13,18 @@ from ...models.schemas import (
     PermissionGrantResponse, PermissionGrantCreate, PermissionGrantUpdate, MessageResponse
 )
 from ...models.db_models import PermissionStatus
-from ...services.auth_service import AuthService
+from ...core.rbac import Permission, require_permission, get_current_user_with_permissions
 from ...services.permission_service import PermissionService
 
 router = APIRouter()
 
 
 @router.post("/", response_model=PermissionGrantResponse)
+@require_permission(Permission.PERMISSION_CREATE)
 async def create_permission_request(
     grant_data: PermissionGrantCreate,
-    current_user: Annotated[dict, Depends(AuthService.get_current_user)] = None,
-    db: Annotated[AsyncSession, Depends(get_db)] = None
+    current_user: dict = Depends(get_current_user_with_permissions),
+    db: AsyncSession = Depends(get_db)
 ):
     """Create a new permission request"""
     try:
@@ -41,20 +42,21 @@ async def create_permission_request(
 
 
 @router.get("/", response_model=List[PermissionGrantResponse])
+@require_permission(Permission.PERMISSION_READ)
 async def list_permission_grants(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
     user_id: Optional[int] = None,
     client_id: Optional[int] = None,
     status_filter: Optional[PermissionStatus] = Query(None, alias="status"),
-    current_user: Annotated[dict, Depends(AuthService.get_current_user)] = None,
-    db: Annotated[AsyncSession, Depends(get_db)] = None
+    current_user: dict = Depends(get_current_user_with_permissions),
+    db: AsyncSession = Depends(get_db)
 ):
     """List permission grants"""
     permission_service = PermissionService(db)
     
-    # Regular users can only see their own grants
-    if current_user.get("role") not in ["admin", "super_admin", "Admin", "Super Admin"]:
+    # Regular users can only see their own grants based on resource ownership
+    if current_user.get("resource_ownership") == "self_only":
         user_id = current_user["user_id"]
     
     grants = await permission_service.list_permission_grants(
@@ -68,10 +70,11 @@ async def list_permission_grants(
 
 
 @router.get("/{grant_id}", response_model=PermissionGrantResponse)
+@require_permission(Permission.PERMISSION_READ, resource_ownership=True, allow_self_access=True)
 async def get_permission_grant(
     grant_id: int,
-    current_user: Annotated[dict, Depends(AuthService.get_current_user)] = None,
-    db: Annotated[AsyncSession, Depends(get_db)] = None
+    current_user: dict = Depends(get_current_user_with_permissions),
+    db: AsyncSession = Depends(get_db)
 ):
     """Get permission grant by ID"""
     permission_service = PermissionService(db)
@@ -83,31 +86,21 @@ async def get_permission_grant(
             detail="Permission grant not found"
         )
     
-    # Check if user can access this grant
-    if (current_user.get("role") not in ["admin", "super_admin", "Admin", "Super Admin"] and 
-        grant.user_id != current_user["user_id"]):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Insufficient permissions"
-        )
+    # RBAC decorator handles access control
     
     return grant
 
 
 @router.put("/{grant_id}", response_model=PermissionGrantResponse)
+@require_permission(Permission.PERMISSION_UPDATE)
 async def update_permission_grant(
     grant_id: int,
     grant_data: PermissionGrantUpdate,
-    current_user: Annotated[dict, Depends(AuthService.get_current_user)] = None,
-    db: Annotated[AsyncSession, Depends(get_db)] = None
+    current_user: dict = Depends(get_current_user_with_permissions),
+    db: AsyncSession = Depends(get_db)
 ):
     """Update permission grant"""
-    # Only admins can update grants
-    if current_user.get("role") not in ["admin", "super_admin", "Admin", "Super Admin"]:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Insufficient permissions"
-        )
+    # RBAC decorator handles access control
     
     # TODO: Implement update logic
     raise HTTPException(
@@ -117,11 +110,12 @@ async def update_permission_grant(
 
 
 @router.post("/{grant_id}/approve", response_model=PermissionGrantResponse)
+@require_permission(Permission.PERMISSION_APPROVE)
 async def approve_permission_grant(
     grant_id: int,
     notes: Optional[str] = None,
-    current_user: Annotated[dict, Depends(AuthService.get_current_user)] = None,
-    db: Annotated[AsyncSession, Depends(get_db)] = None
+    current_user: dict = Depends(get_current_user_with_permissions),
+    db: AsyncSession = Depends(get_db)
 ):
     """Approve permission grant"""
     try:
@@ -150,11 +144,12 @@ async def approve_permission_grant(
 
 
 @router.post("/{grant_id}/reject", response_model=PermissionGrantResponse)
+@require_permission(Permission.PERMISSION_APPROVE)
 async def reject_permission_grant(
     grant_id: int,
     reason: Optional[str] = None,
-    current_user: Annotated[dict, Depends(AuthService.get_current_user)] = None,
-    db: Annotated[AsyncSession, Depends(get_db)] = None
+    current_user: dict = Depends(get_current_user_with_permissions),
+    db: AsyncSession = Depends(get_db)
 ):
     """Reject permission grant"""
     try:
@@ -178,11 +173,12 @@ async def reject_permission_grant(
 
 
 @router.post("/{grant_id}/revoke", response_model=PermissionGrantResponse)
+@require_permission(Permission.PERMISSION_REVOKE)
 async def revoke_permission_grant(
     grant_id: int,
     reason: Optional[str] = None,
-    current_user: Annotated[dict, Depends(AuthService.get_current_user)] = None,
-    db: Annotated[AsyncSession, Depends(get_db)] = None
+    current_user: dict = Depends(get_current_user_with_permissions),
+    db: AsyncSession = Depends(get_db)
 ):
     """Revoke permission grant"""
     try:
@@ -206,11 +202,12 @@ async def revoke_permission_grant(
 
 
 @router.post("/{grant_id}/extend", response_model=PermissionGrantResponse)
+@require_permission(Permission.PERMISSION_UPDATE)
 async def extend_permission_grant(
     grant_id: int,
     new_expiry: datetime,
-    current_user: Annotated[dict, Depends(AuthService.get_current_user)] = None,
-    db: Annotated[AsyncSession, Depends(get_db)] = None
+    current_user: dict = Depends(get_current_user_with_permissions),
+    db: AsyncSession = Depends(get_db)
 ):
     """Extend permission grant expiry"""
     try:

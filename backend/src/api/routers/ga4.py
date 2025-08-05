@@ -9,18 +9,19 @@ from typing import Annotated, List, Dict, Any
 from ...core.database import get_db
 from ...core.exceptions import GoogleAPIError
 from ...models.schemas import MessageResponse
-from ...services.auth_service import AuthService
+from ...core.rbac import Permission, require_permission, get_current_user_with_permissions
 from ...services.google_api_service import GoogleAnalyticsService
 
 router = APIRouter()
 
 
 @router.get("/")
+@require_permission(Permission.GA4_PROPERTY_READ)
 async def list_ga4_properties(
     page: int = Query(1, ge=1),
     limit: int = Query(100, ge=1, le=1000),
-    current_user: Annotated[dict, Depends(AuthService.get_current_user)] = None,
-    db: Annotated[AsyncSession, Depends(get_db)] = None
+    current_user: dict = Depends(get_current_user_with_permissions),
+    db: AsyncSession = Depends(get_db)
 ) -> List[Dict[str, Any]]:
     """List all Google Analytics properties"""
     # Return empty list for now (placeholder)
@@ -28,17 +29,13 @@ async def list_ga4_properties(
 
 
 @router.get("/accounts")
+@require_permission(Permission.GA4_PROPERTY_READ)
 async def list_ga4_accounts(
-    current_user: Annotated[dict, Depends(AuthService.get_current_user)] = None,
-    db: Annotated[AsyncSession, Depends(get_db)] = None
+    current_user: dict = Depends(get_current_user_with_permissions),
+    db: AsyncSession = Depends(get_db)
 ) -> List[Dict[str, Any]]:
     """List all Google Analytics accounts"""
-    # Only admins and super admins can list accounts
-    if current_user.get("role") not in ["admin", "super_admin"]:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Insufficient permissions"
-        )
+    # RBAC decorator handles access control
     
     try:
         ga_service = GoogleAnalyticsService()
@@ -52,18 +49,14 @@ async def list_ga4_accounts(
 
 
 @router.get("/accounts/{account_name}/properties")
+@require_permission(Permission.GA4_PROPERTY_READ)
 async def list_ga4_properties(
     account_name: str,
-    current_user: Annotated[dict, Depends(AuthService.get_current_user)] = None,
-    db: Annotated[AsyncSession, Depends(get_db)] = None
+    current_user: dict = Depends(get_current_user_with_permissions),
+    db: AsyncSession = Depends(get_db)
 ) -> List[Dict[str, Any]]:
     """List properties for a specific account"""
-    # Only admins and super admins can list properties
-    if current_user.get("role") not in ["admin", "super_admin"]:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Insufficient permissions"
-        )
+    # RBAC decorator handles access control
     
     try:
         ga_service = GoogleAnalyticsService()
@@ -77,18 +70,14 @@ async def list_ga4_properties(
 
 
 @router.get("/properties/{property_name}/users")
+@require_permission(Permission.GA4_PROPERTY_READ)
 async def get_property_users(
     property_name: str,
-    current_user: Annotated[dict, Depends(AuthService.get_current_user)] = None,
-    db: Annotated[AsyncSession, Depends(get_db)] = None
+    current_user: dict = Depends(get_current_user_with_permissions),
+    db: AsyncSession = Depends(get_db)
 ) -> List[Dict[str, Any]]:
     """Get users for a specific property"""
-    # Only admins and super admins can view property users
-    if current_user.get("role") not in ["admin", "super_admin"]:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Insufficient permissions"
-        )
+    # RBAC decorator handles access control
     
     try:
         ga_service = GoogleAnalyticsService()
@@ -102,18 +91,14 @@ async def get_property_users(
 
 
 @router.post("/properties/{property_name}/validate", response_model=MessageResponse)
+@require_permission(Permission.GA4_PROPERTY_READ)
 async def validate_property_access(
     property_name: str,
-    current_user: Annotated[dict, Depends(AuthService.get_current_user)] = None,
-    db: Annotated[AsyncSession, Depends(get_db)] = None
+    current_user: dict = Depends(get_current_user_with_permissions),
+    db: AsyncSession = Depends(get_db)
 ):
     """Validate if service account has access to manage the property"""
-    # Only admins and super admins can validate property access
-    if current_user.get("role") not in ["admin", "super_admin"]:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Insufficient permissions"
-        )
+    # RBAC decorator handles access control
     
     try:
         ga_service = GoogleAnalyticsService()

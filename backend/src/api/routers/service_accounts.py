@@ -13,19 +13,18 @@ from ...models.schemas import (
     ServiceAccountResponse, ServiceAccountCreate, ServiceAccountUpdate, 
     MessageResponse, PaginatedResponse, GA4PropertyResponse
 )
-from ...services.auth_service import AuthService
+from ...core.rbac import Permission, require_permission, get_current_user_with_permissions
 from ...services.service_account_service import ServiceAccountService
-from ...core.auth_dependencies import require_permissions
 
 router = APIRouter()
 
 
 @router.post("/", response_model=ServiceAccountResponse)
-@require_permissions(["manage_service_accounts"])
+@require_permission(Permission.SERVICE_ACCOUNT_CREATE)
 async def create_service_account(
     sa_data: ServiceAccountCreate,
-    current_user: Annotated[dict, Depends(AuthService.get_current_user)] = None,
-    db: Annotated[AsyncSession, Depends(get_db)] = None
+    current_user: dict = Depends(get_current_user_with_permissions),
+    db: AsyncSession = Depends(get_db)
 ):
     """Create a new service account"""
     try:
@@ -48,14 +47,14 @@ async def create_service_account(
 
 
 @router.get("/", response_model=PaginatedResponse[ServiceAccountResponse])
-@require_permissions(["read_service_accounts"])
+@require_permission(Permission.SERVICE_ACCOUNT_READ)
 async def list_service_accounts(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
     client_id: Optional[int] = None,
     is_active: Optional[bool] = None,
-    current_user: Annotated[dict, Depends(AuthService.get_current_user)] = None,
-    db: Annotated[AsyncSession, Depends(get_db)] = None
+    current_user: dict = Depends(get_current_user_with_permissions),
+    db: AsyncSession = Depends(get_db)
 ):
     """List service accounts with pagination and filters"""
     sa_service = ServiceAccountService(db)
@@ -81,11 +80,11 @@ async def list_service_accounts(
 
 
 @router.get("/{sa_id}", response_model=ServiceAccountResponse)
-@require_permissions(["read_service_accounts"])
+@require_permission(Permission.SERVICE_ACCOUNT_READ)
 async def get_service_account(
     sa_id: int,
-    current_user: Annotated[dict, Depends(AuthService.get_current_user)] = None,
-    db: Annotated[AsyncSession, Depends(get_db)] = None
+    current_user: dict = Depends(get_current_user_with_permissions),
+    db: AsyncSession = Depends(get_db)
 ):
     """Get service account by ID"""
     sa_service = ServiceAccountService(db)
@@ -115,12 +114,12 @@ async def get_service_account(
 
 
 @router.put("/{sa_id}", response_model=ServiceAccountResponse)
-@require_permissions(["manage_service_accounts"])
+@require_permission(Permission.SERVICE_ACCOUNT_UPDATE)
 async def update_service_account(
     sa_id: int,
     sa_data: ServiceAccountUpdate,
-    current_user: Annotated[dict, Depends(AuthService.get_current_user)] = None,
-    db: Annotated[AsyncSession, Depends(get_db)] = None
+    current_user: dict = Depends(get_current_user_with_permissions),
+    db: AsyncSession = Depends(get_db)
 ):
     """Update service account"""
     try:
@@ -144,11 +143,11 @@ async def update_service_account(
 
 
 @router.delete("/{sa_id}", response_model=MessageResponse)
-@require_permissions(["manage_service_accounts"])
+@require_permission(Permission.SERVICE_ACCOUNT_UPDATE)
 async def delete_service_account(
     sa_id: int,
-    current_user: Annotated[dict, Depends(AuthService.get_current_user)] = None,
-    db: Annotated[AsyncSession, Depends(get_db)] = None
+    current_user: dict = Depends(get_current_user_with_permissions),
+    db: AsyncSession = Depends(get_db)
 ):
     """Delete service account"""
     try:
@@ -166,11 +165,11 @@ async def delete_service_account(
 
 
 @router.post("/{sa_id}/validate", response_model=dict)
-@require_permissions(["manage_service_accounts"])
+@require_permission(Permission.SERVICE_ACCOUNT_UPDATE)
 async def validate_service_account(
     sa_id: int,
-    current_user: Annotated[dict, Depends(AuthService.get_current_user)] = None,
-    db: Annotated[AsyncSession, Depends(get_db)] = None
+    current_user: dict = Depends(get_current_user_with_permissions),
+    db: AsyncSession = Depends(get_db)
 ):
     """Validate service account credentials and permissions"""
     try:
@@ -190,11 +189,11 @@ async def validate_service_account(
 
 
 @router.post("/{sa_id}/discover-properties", response_model=List[GA4PropertyResponse])
-@require_permissions(["manage_service_accounts"])
+@require_permission(Permission.SERVICE_ACCOUNT_UPDATE)
 async def discover_ga4_properties(
     sa_id: int,
-    current_user: Annotated[dict, Depends(AuthService.get_current_user)] = None,
-    db: Annotated[AsyncSession, Depends(get_db)] = None
+    current_user: dict = Depends(get_current_user_with_permissions),
+    db: AsyncSession = Depends(get_db)
 ):
     """Discover GA4 properties accessible by this service account"""
     try:
@@ -217,12 +216,12 @@ async def discover_ga4_properties(
 
 
 @router.get("/{sa_id}/properties", response_model=List[GA4PropertyResponse])
-@require_permissions(["read_service_accounts"])
+@require_permission(Permission.SERVICE_ACCOUNT_READ)
 async def list_service_account_properties(
     sa_id: int,
     is_active: Optional[bool] = None,
-    current_user: Annotated[dict, Depends(AuthService.get_current_user)] = None,
-    db: Annotated[AsyncSession, Depends(get_db)] = None
+    current_user: dict = Depends(get_current_user_with_permissions),
+    db: AsyncSession = Depends(get_db)
 ):
     """List GA4 properties associated with this service account"""
     try:
@@ -240,11 +239,11 @@ async def list_service_account_properties(
 
 
 @router.get("/{sa_id}/health", response_model=dict)
-@require_permissions(["read_service_accounts"])
+@require_permission(Permission.SERVICE_ACCOUNT_READ)
 async def get_service_account_health(
     sa_id: int,
-    current_user: Annotated[dict, Depends(AuthService.get_current_user)] = None,
-    db: Annotated[AsyncSession, Depends(get_db)] = None
+    current_user: dict = Depends(get_current_user_with_permissions),
+    db: AsyncSession = Depends(get_db)
 ):
     """Get service account health status"""
     try:
@@ -259,11 +258,11 @@ async def get_service_account_health(
 
 
 @router.post("/{sa_id}/health/check", response_model=dict)
-@require_permissions(["manage_service_accounts"])
+@require_permission(Permission.SERVICE_ACCOUNT_UPDATE)
 async def check_service_account_health(
     sa_id: int,
-    current_user: Annotated[dict, Depends(AuthService.get_current_user)] = None,
-    db: Annotated[AsyncSession, Depends(get_db)] = None
+    current_user: dict = Depends(get_current_user_with_permissions),
+    db: AsyncSession = Depends(get_db)
 ):
     """Perform health check on service account"""
     try:
@@ -289,8 +288,8 @@ async def check_service_account_health(
 @require_permissions(["manage_service_accounts", "system_admin"])
 async def rotate_service_account_credentials(
     sa_id: int,
-    current_user: Annotated[dict, Depends(AuthService.get_current_user)] = None,
-    db: Annotated[AsyncSession, Depends(get_db)] = None
+    current_user: dict = Depends(get_current_user_with_permissions),
+    db: AsyncSession = Depends(get_db)
 ):
     """Rotate service account credentials (Super Admin only)"""
     if current_user.get("role") != "super_admin":
