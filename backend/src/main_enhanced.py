@@ -18,7 +18,8 @@ from .api.routers import (
     clients_enhanced,
     permissions_enhanced,
     permission_requests,
-    service_accounts
+    service_accounts,
+    ai_insights
 )
 
 # Import existing routers (assuming they exist)
@@ -140,6 +141,7 @@ app.include_router(client_assignments.router, prefix="/api")
 app.include_router(permissions_enhanced.router, prefix="/api")
 app.include_router(permission_requests.router, prefix="/api")
 app.include_router(service_accounts.router, prefix="/api")
+app.include_router(ai_insights.router, prefix="/api")
 app.include_router(audit_logs, prefix="/api")
 
 
@@ -159,7 +161,11 @@ async def system_info():
             "Role-Based Access Control",
             "Enhanced Permission Management",
             "Comprehensive Audit Logging",
-            "Client-Level Access Control"
+            "Client-Level Access Control",
+            "AI-Powered Analytics Insights",
+            "Machine Learning Predictions",
+            "Natural Language Query Interface",
+            "Real-time Anomaly Detection"
         ],
         "roles": [role.value for role in UserRole],
         "assignment_statuses": [status.value for status in ClientAssignmentStatus]

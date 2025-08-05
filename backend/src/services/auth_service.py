@@ -3,7 +3,7 @@ Authentication service
 """
 
 from datetime import datetime, timedelta
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, Tuple
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from fastapi import Depends, HTTPException, status
@@ -14,7 +14,7 @@ from sqlalchemy import select
 from ..core.config import settings
 from ..core.database import get_db
 from ..core.exceptions import AuthenticationError
-from ..models.db_models import User
+from ..models.db_models import User, UserStatus
 from ..models.schemas import UserLogin, Token
 
 # Password hashing
@@ -73,17 +73,45 @@ class AuthService:
     
     async def get_user_by_email(self, email: str) -> Optional[User]:
         """Get user by email"""
-        result = await self.db.execute(select(User).where(User.email == email))
-        return result.scalar_one_or_none()
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        logger.info(f"Querying database for email: {email}")
+        try:
+            result = await self.db.execute(select(User).where(User.email == email))
+            user = result.scalar_one_or_none()
+            logger.info(f"Query result for {email}: {user is not None}")
+            if user:
+                logger.info(f"Found user: id={user.id}, email={user.email}, status={user.status}")
+            return user
+        except Exception as e:
+            logger.error(f"Database error querying for {email}: {e}")
+            return None
     
-    async def authenticate_user(self, login_data: UserLogin) -> Token:
-        """Authenticate user and return tokens"""
+    async def authenticate_user(self, login_data: UserLogin) -> Tuple[Token, User]:
+        """Authenticate user and return tokens with user info"""
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        logger.info(f"Attempting authentication for: {login_data.email}")
         user = await self.get_user_by_email(login_data.email)
         
-        if not user or not self.verify_password(login_data.password, user.password_hash):
+        if not user:
+            logger.error(f"User not found: {login_data.email}")
             raise AuthenticationError("Invalid email or password")
         
-        if user.status != "active":
+        logger.info(f"User found: {user.email}, status: {user.status}, role: {user.role}")
+        
+        password_valid = self.verify_password(login_data.password, user.password_hash)
+        logger.info(f"Password verification result: {password_valid}")
+        
+        if not password_valid:
+            logger.error(f"Password verification failed for: {login_data.email}")
+            raise AuthenticationError("Invalid email or password")
+        
+        logger.info(f"Checking user status: {user.status} == {UserStatus.ACTIVE}")
+        if user.status != UserStatus.ACTIVE:
+            logger.error(f"User status check failed: {user.status} != {UserStatus.ACTIVE}")
             raise AuthenticationError("Account is not active")
         
         # Update last login
@@ -95,11 +123,13 @@ class AuthService:
         access_token = self.create_access_token(token_data)
         refresh_token = self.create_refresh_token({"sub": user.email, "user_id": user.id})
         
-        return Token(
+        token = Token(
             access_token=access_token,
             refresh_token=refresh_token,
             expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60
         )
+        
+        return token, user
     
     async def refresh_access_token(self, refresh_token: str) -> Token:
         """Refresh access token using refresh token"""
@@ -118,7 +148,7 @@ class AuthService:
         if not user or user.id != user_id:
             raise AuthenticationError("User not found")
         
-        if user.status != "active":
+        if user.status != UserStatus.ACTIVE:
             raise AuthenticationError("Account is not active")
         
         # Create new tokens
@@ -160,7 +190,7 @@ class AuthService:
         result = await db.execute(select(User).where(User.id == user_id))
         user = result.scalar_one_or_none()
         
-        if user is None or user.status != "active":
+        if user is None or user.status != UserStatus.ACTIVE:
             raise credentials_exception
         
         return {

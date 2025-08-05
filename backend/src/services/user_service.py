@@ -39,7 +39,7 @@ class UserService:
         
         return UserResponse.model_validate(user)
     
-    async def create_user(self, user_data: UserCreate) -> UserResponse:
+    async def create_user(self, user_data: UserCreate, is_admin_creation: bool = False) -> UserResponse:
         """Create a new user"""
         # Check if user with this email already exists
         existing_user = await self.get_user_by_email(user_data.email)
@@ -53,13 +53,28 @@ class UserService:
         # Create user
         hashed_password = AuthService.hash_password(user_data.password)
         
+        # Determine user role and status based on registration context
+        user_role = UserRole.REQUESTER  # Default role
+        user_status = UserStatus.ACTIVE if is_admin_creation else UserStatus.INACTIVE  # Inactive for self-registration
+        
+        # If role is specified in user_data and it's admin creation, use that role
+        if is_admin_creation and hasattr(user_data, 'role') and user_data.role:
+            # Map frontend role names to backend enum values
+            role_mapping = {
+                "Super Admin": UserRole.SUPER_ADMIN,
+                "Admin": UserRole.ADMIN,
+                "Requester": UserRole.REQUESTER,
+                "Viewer": UserRole.VIEWER
+            }
+            user_role = role_mapping.get(user_data.role, UserRole.REQUESTER)
+        
         user = User(
             email=user_data.email,
             name=user_data.name,
             company=user_data.company,
             password_hash=hashed_password,
-            role=UserRole.REQUESTER,  # Default role
-            status=UserStatus.ACTIVE
+            role=user_role,
+            status=user_status
         )
         
         self.db.add(user)

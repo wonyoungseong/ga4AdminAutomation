@@ -2,7 +2,7 @@
 Google Analytics 4 API routes
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Annotated, List, Dict, Any
 
@@ -13,6 +13,18 @@ from ...services.auth_service import AuthService
 from ...services.google_api_service import GoogleAnalyticsService
 
 router = APIRouter()
+
+
+@router.get("/")
+async def list_ga4_properties(
+    page: int = Query(1, ge=1),
+    limit: int = Query(100, ge=1, le=1000),
+    current_user: Annotated[dict, Depends(AuthService.get_current_user)] = None,
+    db: Annotated[AsyncSession, Depends(get_db)] = None
+) -> List[Dict[str, Any]]:
+    """List all Google Analytics properties"""
+    # Return empty list for now (placeholder)
+    return []
 
 
 @router.get("/accounts")

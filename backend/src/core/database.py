@@ -49,7 +49,11 @@ async def init_db() -> None:
     try:
         async with engine.begin() as conn:
             # Import all models to ensure they are registered
-            from ..models.db_models import User, Client, ServiceAccount, PermissionGrant, AuditLog, PasswordResetToken
+            from ..models.db_models import (
+                User, Client, ServiceAccount, PermissionGrant, AuditLog, PasswordResetToken,
+                ClientAssignment, PropertyAccessRequest, UserActivityLog, UserSession, 
+                GA4Property, UserPermission, NotificationLog, ReportDownloadLog
+            )
             
             # Create all tables
             await conn.run_sync(Base.metadata.create_all)

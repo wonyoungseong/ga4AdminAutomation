@@ -54,7 +54,7 @@ async def list_permission_grants(
     permission_service = PermissionService(db)
     
     # Regular users can only see their own grants
-    if current_user.get("role") not in ["admin", "super_admin"]:
+    if current_user.get("role") not in ["admin", "super_admin", "Admin", "Super Admin"]:
         user_id = current_user["user_id"]
     
     grants = await permission_service.list_permission_grants(
@@ -84,7 +84,7 @@ async def get_permission_grant(
         )
     
     # Check if user can access this grant
-    if (current_user.get("role") not in ["admin", "super_admin"] and 
+    if (current_user.get("role") not in ["admin", "super_admin", "Admin", "Super Admin"] and 
         grant.user_id != current_user["user_id"]):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -103,7 +103,7 @@ async def update_permission_grant(
 ):
     """Update permission grant"""
     # Only admins can update grants
-    if current_user.get("role") not in ["admin", "super_admin"]:
+    if current_user.get("role") not in ["admin", "super_admin", "Admin", "Super Admin"]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Insufficient permissions"

@@ -113,5 +113,115 @@ class EmailError(AppException):
         )
 
 
+class SecurityError(AppException):
+    """Security error exception for security-related issues"""
+    
+    def __init__(self, message: str = "Security violation detected", details: Optional[Dict[str, Any]] = None):
+        super().__init__(
+            message=message,
+            status_code=429,  # Too Many Requests for brute force attempts
+            error_code="SECURITY_ERROR",
+            details=details
+        )
+
+
+class SessionError(AppException):
+    """Session management error exception"""
+    
+    def __init__(self, message: str = "Session error occurred", details: Optional[Dict[str, Any]] = None):
+        super().__init__(
+            message=message,
+            status_code=401,
+            error_code="SESSION_ERROR",
+            details=details
+        )
+
+
+class RegistrationError(AppException):
+    """User registration error exception"""
+    
+    def __init__(self, message: str = "Registration failed", details: Optional[Dict[str, Any]] = None):
+        super().__init__(
+            message=message,
+            status_code=422,
+            error_code="REGISTRATION_ERROR",
+            details=details
+        )
+
+
+class VerificationError(AppException):
+    """Email verification error exception"""
+    
+    def __init__(self, message: str = "Verification failed", details: Optional[Dict[str, Any]] = None):
+        super().__init__(
+            message=message,
+            status_code=400,
+            error_code="VERIFICATION_ERROR",
+            details=details
+        )
+
+
+class ApprovalError(AppException):
+    """User approval error exception"""
+    
+    def __init__(self, message: str = "Approval process failed", details: Optional[Dict[str, Any]] = None):
+        super().__init__(
+            message=message,
+            status_code=422,
+            error_code="APPROVAL_ERROR",
+            details=details
+        )
+
+
+class PropertyAccessError(AppException):
+    """Property access error exception"""
+    
+    def __init__(self, message: str = "Property access denied", details: Optional[Dict[str, Any]] = None):
+        super().__init__(
+            message=message,
+            status_code=403,
+            error_code="PROPERTY_ACCESS_ERROR",
+            details=details
+        )
+
+
+class AuditError(AppException):
+    """Audit logging error exception"""
+    
+    def __init__(self, message: str = "Audit logging failed", details: Optional[Dict[str, Any]] = None):
+        super().__init__(
+            message=message,
+            status_code=500,
+            error_code="AUDIT_ERROR",
+            details=details
+        )
+
+
+class ConfigurationError(AppException):
+    """Configuration error exception"""
+    
+    def __init__(self, message: str = "Configuration error", details: Optional[Dict[str, Any]] = None):
+        super().__init__(
+            message=message,
+            status_code=500,
+            error_code="CONFIGURATION_ERROR",
+            details=details
+        )
+
+
 # Aliases for backward compatibility
 PermissionDeniedError = AuthorizationError
+
+
+def create_http_exception(exception: AppException):
+    """Convert AppException to HTTPException for FastAPI"""
+    from fastapi import HTTPException
+    
+    return HTTPException(
+        status_code=exception.status_code,
+        detail={
+            "message": exception.message,
+            "error_code": exception.error_code,
+            "details": exception.details
+        }
+    )

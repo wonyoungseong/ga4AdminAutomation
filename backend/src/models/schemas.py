@@ -9,7 +9,9 @@ from pydantic import BaseModel, EmailStr, Field, ConfigDict
 from .db_models import (
     UserRole, UserStatus, PermissionLevel, PermissionStatus, 
     ClientAssignmentStatus, PermissionRequestStatus,
-    NotificationChannel, NotificationStatus, ReportType
+    NotificationChannel, NotificationStatus, ReportType,
+    RegistrationStatus, PropertyAccessStatus, ActivityType, 
+    PriorityLevel, AccessLevel
 )
 
 
@@ -32,6 +34,10 @@ class UserCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
     company: Optional[str] = Field(None, max_length=100)
     password: str = Field(..., min_length=8)
+    department: Optional[str] = Field(None, max_length=100)
+    job_title: Optional[str] = Field(None, max_length=100)
+    phone_number: Optional[str] = Field(None, max_length=20)
+    primary_client_id: Optional[int] = None
 
 
 class UserResponse(BaseSchema):
@@ -42,7 +48,14 @@ class UserResponse(BaseSchema):
     company: Optional[str] = None
     role: UserRole
     status: UserStatus
+    registration_status: RegistrationStatus
     is_representative: bool
+    email_verified_at: Optional[datetime] = None
+    approved_at: Optional[datetime] = None
+    department: Optional[str] = None
+    job_title: Optional[str] = None
+    phone_number: Optional[str] = None
+    primary_client_id: Optional[int] = None
     created_at: datetime
     last_login_at: Optional[datetime] = None
 
@@ -62,7 +75,12 @@ class UserUpdate(BaseModel):
     company: Optional[str] = Field(None, max_length=100)
     role: Optional[UserRole] = None
     status: Optional[UserStatus] = None
+    registration_status: Optional[RegistrationStatus] = None
     is_representative: Optional[bool] = None
+    department: Optional[str] = Field(None, max_length=100)
+    job_title: Optional[str] = Field(None, max_length=100)
+    phone_number: Optional[str] = Field(None, max_length=20)
+    primary_client_id: Optional[int] = None
 
 
 class PasswordResetRequest(BaseModel):
@@ -633,3 +651,256 @@ class PermissionGrantExtended(PermissionGrantResponse):
     
     # Nested objects
     revoked_by: Optional[UserResponse] = None
+
+
+# Enhanced Registration and User Management Schemas
+class UserRegistrationRequest(BaseModel):
+    """Enhanced user registration request"""
+    email: EmailStr
+    name: str = Field(..., min_length=1, max_length=100)
+    company: Optional[str] = Field(None, max_length=100)
+    password: str = Field(..., min_length=8)
+    department: Optional[str] = Field(None, max_length=100)
+    job_title: Optional[str] = Field(None, max_length=100)
+    phone_number: Optional[str] = Field(None, max_length=20)
+    requested_client_id: Optional[int] = None
+    business_justification: Optional[str] = Field(None, max_length=500)
+
+
+class EmailVerificationRequest(BaseModel):
+    """Email verification request"""
+    token: str = Field(..., min_length=32)
+
+
+class UserApprovalRequest(BaseModel):
+    """User approval/rejection request"""
+    approved: bool
+    rejection_reason: Optional[str] = Field(None, max_length=500)
+    assigned_role: Optional[UserRole] = None
+    primary_client_id: Optional[int] = None
+
+
+class PropertyAccessRequestCreate(BaseModel):
+    """Property access request creation"""
+    client_id: int = Field(..., gt=0)
+    requested_property_id: str = Field(..., min_length=1)
+    target_email: EmailStr
+    permission_level: PermissionLevel
+    business_justification: str = Field(..., min_length=10, max_length=1000)
+    requested_duration_days: int = Field(30, gt=0, le=365)
+    priority_level: PriorityLevel = PriorityLevel.NORMAL
+    external_ticket_id: Optional[str] = Field(None, max_length=50)
+
+
+class PropertyAccessRequestUpdate(BaseModel):
+    """Property access request update"""
+    status: Optional[PropertyAccessStatus] = None
+    processing_notes: Optional[str] = Field(None, max_length=1000)
+    rejection_reason: Optional[str] = Field(None, max_length=500)
+    priority_level: Optional[PriorityLevel] = None
+
+
+class PropertyAccessRequestResponse(BaseSchema):
+    """Property access request response"""
+    id: int
+    user_id: int
+    client_id: int
+    ga4_property_id: Optional[int] = None
+    requested_property_id: str
+    status: PropertyAccessStatus
+    permission_level: PermissionLevel
+    target_email: str
+    business_justification: str
+    requested_duration_days: int
+    auto_approved: bool
+    requires_approval_from_role: Optional[UserRole] = None
+    processed_at: Optional[datetime] = None
+    processed_by_id: Optional[int] = None
+    processing_notes: Optional[str] = None
+    rejection_reason: Optional[str] = None
+    approved_at: Optional[datetime] = None
+    approved_by_id: Optional[int] = None
+    expires_at: Optional[datetime] = None
+    revoked_at: Optional[datetime] = None
+    revoked_by_id: Optional[int] = None
+    revocation_reason: Optional[str] = None
+    priority_level: PriorityLevel
+    external_ticket_id: Optional[str] = None
+    created_at: datetime
+    updated_at: datetime
+    
+    # Computed properties
+    is_active: Optional[bool] = None
+    days_until_expiry: Optional[int] = None
+    is_expiring_soon: Optional[bool] = None
+    
+    # Nested objects
+    user: Optional[UserResponse] = None
+    client: Optional[ClientResponse] = None
+    processed_by: Optional[UserResponse] = None
+    approved_by: Optional[UserResponse] = None
+    revoked_by: Optional[UserResponse] = None
+
+
+class PropertyAccessApprovalRequest(BaseModel):
+    """Property access approval request"""
+    approved: bool
+    processing_notes: Optional[str] = Field(None, max_length=1000)
+    rejection_reason: Optional[str] = Field(None, max_length=500)
+    duration_days: Optional[int] = Field(None, gt=0, le=365)
+
+
+class UserActivityLogResponse(BaseSchema):
+    """User activity log response"""
+    id: int
+    user_id: int
+    target_user_id: Optional[int] = None
+    client_id: Optional[int] = None
+    property_access_request_id: Optional[int] = None
+    activity_type: ActivityType
+    action: str
+    resource_type: Optional[str] = None
+    resource_id: Optional[str] = None
+    ip_address: Optional[str] = None
+    user_agent: Optional[str] = None
+    session_id: Optional[str] = None
+    details: Optional[dict] = None
+    success: bool
+    error_message: Optional[str] = None
+    duration_ms: Optional[int] = None
+    created_at: datetime
+    
+    # Nested objects
+    user: Optional[UserResponse] = None
+    target_user: Optional[UserResponse] = None
+    client: Optional[ClientResponse] = None
+
+
+class UserSessionResponse(BaseSchema):
+    """User session response"""
+    id: int
+    user_id: int
+    session_token: str
+    ip_address: str
+    user_agent: Optional[str] = None
+    device_fingerprint: Optional[str] = None
+    is_active: bool
+    expires_at: datetime
+    last_activity_at: datetime
+    logged_out_at: Optional[datetime] = None
+    logout_reason: Optional[str] = None
+    created_at: datetime
+    updated_at: datetime
+    
+    # Computed properties
+    is_expired: Optional[bool] = None
+    
+    # Nested objects
+    user: Optional[UserResponse] = None
+
+
+class ClientAssignmentCreate(BaseModel):
+    """Client assignment creation request"""
+    user_id: int = Field(..., gt=0)
+    client_id: int = Field(..., gt=0)
+    assignment_type: str = Field("manual", pattern="^(manual|auto|inherited)$")
+    access_level: AccessLevel = AccessLevel.STANDARD
+    expires_at: Optional[datetime] = None
+    notes: Optional[str] = Field(None, max_length=500)
+    department: Optional[str] = Field(None, max_length=100)
+
+
+class ClientAssignmentUpdate(BaseModel):
+    """Client assignment update request"""
+    status: Optional[ClientAssignmentStatus] = None
+    access_level: Optional[AccessLevel] = None
+    expires_at: Optional[datetime] = None
+    notes: Optional[str] = Field(None, max_length=500)
+    department: Optional[str] = Field(None, max_length=100)
+
+
+class ClientAssignmentResponse(BaseSchema):
+    """Enhanced client assignment response"""
+    id: int
+    user_id: int
+    client_id: int
+    assigned_by_id: int
+    status: ClientAssignmentStatus
+    assignment_type: str
+    access_level: AccessLevel
+    assigned_at: datetime
+    expires_at: Optional[datetime] = None
+    notes: Optional[str] = None
+    department: Optional[str] = None
+    last_activity_at: Optional[datetime] = None
+    deactivated_at: Optional[datetime] = None
+    deactivated_by_id: Optional[int] = None
+    deactivation_reason: Optional[str] = None
+    created_at: datetime
+    updated_at: datetime
+    
+    # Computed properties
+    is_active_assignment: Optional[bool] = None
+    
+    # Nested objects
+    user: Optional[UserResponse] = None
+    client: Optional[ClientResponse] = None
+    assigned_by: Optional[UserResponse] = None
+    deactivated_by: Optional[UserResponse] = None
+
+
+class SystemStatsResponse(BaseModel):
+    """Enhanced system statistics"""
+    users: dict = {
+        "total": 0,
+        "active": 0,
+        "pending_verification": 0,
+        "pending_approval": 0,
+        "approved": 0,
+        "rejected": 0,
+        "suspended": 0
+    }
+    property_requests: dict = {
+        "total": 0,
+        "requested": 0,
+        "approved": 0,
+        "denied": 0,
+        "revoked": 0,
+        "expired": 0
+    }
+    client_assignments: dict = {
+        "total": 0,
+        "active": 0,
+        "inactive": 0,
+        "suspended": 0
+    }
+    activity_summary: dict = {
+        "total_activities": 0,
+        "successful_activities": 0,
+        "failed_activities": 0,
+        "unique_users_today": 0,
+        "unique_ips_today": 0
+    }
+    generated_at: datetime
+
+
+class AuditSearchRequest(BaseModel):
+    """Audit log search request"""
+    user_id: Optional[int] = None
+    activity_type: Optional[ActivityType] = None
+    action: Optional[str] = None
+    resource_type: Optional[str] = None
+    success: Optional[bool] = None
+    ip_address: Optional[str] = None
+    date_from: Optional[datetime] = None
+    date_to: Optional[datetime] = None
+    limit: int = Field(100, gt=0, le=1000)
+    offset: int = Field(0, ge=0)
+
+
+class UserVerificationNotification(BaseModel):
+    """User verification notification"""
+    email: EmailStr
+    name: str
+    verification_url: str
+    expires_at: datetime

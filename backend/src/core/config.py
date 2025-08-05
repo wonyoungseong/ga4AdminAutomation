@@ -79,6 +79,35 @@ class Settings(BaseSettings):
     ENABLE_PASSWORD_RESET: bool = True
     ENABLE_EMAIL_NOTIFICATIONS: bool = True
     
+    # AI and ML settings
+    MODELS_DIR: str = "models"
+    AI_CACHE_TTL: int = 3600  # 1 hour
+    ML_MODEL_REFRESH_INTERVAL: int = 86400  # 24 hours
+    
+    # AI Model settings
+    ANOMALY_DETECTION_THRESHOLD: float = 2.5
+    TREND_PREDICTION_MIN_DAYS: int = 7
+    AI_CONFIDENCE_THRESHOLD: float = 0.7
+    
+    # Redis settings for AI caching
+    REDIS_URL: str = "redis://localhost:6379/0"
+    REDIS_AI_CACHE_TTL: int = 1800  # 30 minutes
+    
+    # Natural Language Processing
+    NLP_MODEL_NAME: str = "en_core_web_sm"  # spaCy model
+    MAX_QUERY_LENGTH: int = 500
+    
+    # Performance settings
+    AI_WORKER_THREADS: int = 4
+    ML_BATCH_SIZE: int = 100
+    
+    # Feature flags for AI
+    ENABLE_AI_INSIGHTS: bool = True
+    ENABLE_NATURAL_LANGUAGE_QUERY: bool = True
+    ENABLE_ANOMALY_DETECTION: bool = True
+    ENABLE_TREND_PREDICTION: bool = True
+    ENABLE_ML_MODEL_TRAINING: bool = False  # Disabled by default for security
+    
     @property
     def database_url_sync(self) -> str:
         """Get synchronous database URL for Alembic"""

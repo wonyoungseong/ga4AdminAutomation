@@ -8,7 +8,7 @@ from typing import Annotated, Optional, List
 
 from ...core.database import get_db
 from ...core.exceptions import NotFoundError, AuthorizationError
-from ...models.schemas import UserResponse, UserUpdate, PaginatedResponse
+from ...models.schemas import UserResponse, UserUpdate, UserCreate, PaginatedResponse
 from ...models.db_models import UserRole, UserStatus
 from ...services.auth_service import AuthService
 from ...services.user_service import UserService
@@ -50,6 +50,40 @@ async def list_users(
             status=status
         )
         return users
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Internal error: {str(e)}"
+        )
+
+
+@router.post("/", response_model=UserResponse)
+async def create_user(
+    user_data: UserCreate,
+    current_user: Annotated[dict, Depends(AuthService.get_current_user)] = None,
+    db: Annotated[AsyncSession, Depends(get_db)] = None
+):
+    """Create a new user (admin only)"""
+    try:
+        # Only admin and super_admin can create users directly
+        if not current_user:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Not authenticated"
+            )
+        
+        user_role = current_user.get("role")
+        if user_role not in ["admin", "super_admin", "Admin", "Super Admin"]:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Insufficient permissions to create users. Role: {user_role}"
+            )
+        
+        user_service = UserService(db)
+        user = await user_service.create_user(user_data, is_admin_creation=True)
+        return user
     except HTTPException:
         raise
     except Exception as e:

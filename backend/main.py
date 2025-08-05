@@ -13,7 +13,8 @@ import logging
 from contextlib import asynccontextmanager
 import os
 
-from src.api.routers import auth, users, permissions, clients, notifications, audit, ga4, dashboard, ui_components
+from src.api.routers import auth, users, permissions, clients, notifications, audit, ga4, dashboard, ui_components, health, service_accounts
+# from src.api.routers import enhanced_auth, enhanced_users  # Temporarily disabled due to syntax errors
 from src.core.config import settings
 from src.core.database import init_db
 from src.core.exceptions import AppException
@@ -100,25 +101,24 @@ async def general_exception_handler(request: Request, exc: Exception):
     )
 
 
-# Health check endpoint
-@app.get("/health", tags=["Health"])
-async def health_check():
-    """Health check endpoint"""
-    return {
-        "status": "healthy",
-        "service": "GA4 Admin Automation System",
-        "version": "2.0.0"
-    }
-
-
 # Include API routers
+# Health checks (at root level for load balancer compatibility)
+app.include_router(health.router, tags=["Health"])
+# Enhanced routers with comprehensive user management
+# app.include_router(enhanced_auth.router, prefix="/api/v2/auth", tags=["Enhanced Authentication"])
+# app.include_router(enhanced_users.router, prefix="/api/enhanced-users", tags=["Enhanced Users"])
+
+# Legacy routers for backward compatibility
 app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])
 app.include_router(users.router, prefix="/api/users", tags=["Users"])
+app.include_router(users.router, prefix="/api/enhanced-users", tags=["Enhanced Users"])
 app.include_router(permissions.router, prefix="/api/permissions", tags=["Permissions"])
 app.include_router(clients.router, prefix="/api/clients", tags=["Clients"])
 app.include_router(notifications.router, prefix="/api/notifications", tags=["Notifications"])
 app.include_router(audit.router, prefix="/api/audit", tags=["Audit"])
 app.include_router(ga4.router, prefix="/api/ga4", tags=["Google Analytics 4"])
+app.include_router(ga4.router, prefix="/api/ga4-properties", tags=["GA4 Properties"])
+app.include_router(service_accounts.router, prefix="/api/service-accounts", tags=["Service Accounts"])
 app.include_router(dashboard.router, prefix="/api/dashboard", tags=["Dashboard"])
 app.include_router(ui_components.router, prefix="/api/ui", tags=["UI Components"])
 

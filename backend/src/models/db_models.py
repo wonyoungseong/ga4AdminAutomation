@@ -4,7 +4,9 @@ Database models for GA4 Admin Automation System
 
 from datetime import datetime, timedelta
 from typing import Optional
-from sqlalchemy import Boolean, DateTime, Integer, String, Text, ForeignKey, Enum
+from sqlalchemy import Boolean, DateTime, Integer, String, Text, ForeignKey, Enum, JSON
+from sqlalchemy.dialects.postgresql import INET, JSONB
+from sqlalchemy import JSON
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 import enum
@@ -84,6 +86,50 @@ class ClientAssignmentStatus(str, enum.Enum):
     SUSPENDED = "suspended"
 
 
+class RegistrationStatus(str, enum.Enum):
+    """User registration status enumeration"""
+    PENDING_VERIFICATION = "pending_verification"
+    VERIFIED = "verified"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+    SUSPENDED = "suspended"
+
+
+class PropertyAccessStatus(str, enum.Enum):
+    """Property access status enumeration"""
+    REQUESTED = "requested"
+    APPROVED = "approved"
+    DENIED = "denied"
+    REVOKED = "revoked"
+    EXPIRED = "expired"
+
+
+class ActivityType(str, enum.Enum):
+    """User activity type enumeration"""
+    AUTH = "auth"
+    USER_MANAGEMENT = "user_management"
+    PERMISSION_MANAGEMENT = "permission_management"
+    CLIENT_MANAGEMENT = "client_management"
+    SYSTEM_ADMIN = "system_admin"
+    API_ACCESS = "api_access"
+
+
+class PriorityLevel(str, enum.Enum):
+    """Request priority level enumeration"""
+    LOW = "low"
+    NORMAL = "normal"
+    HIGH = "high"
+    URGENT = "urgent"
+
+
+class AccessLevel(str, enum.Enum):
+    """Client access level enumeration"""
+    BASIC = "basic"
+    STANDARD = "standard"
+    ADVANCED = "advanced"
+    FULL = "full"
+
+
 class User(Base):
     """User model"""
     __tablename__ = "users"
@@ -108,6 +154,24 @@ class User(Base):
     password_reset_count: Mapped[int] = mapped_column(Integer, default=0)
     last_password_reset: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
     
+    # Enhanced registration and verification fields
+    registration_status: Mapped[RegistrationStatus] = mapped_column(Enum(RegistrationStatus), default=RegistrationStatus.PENDING_VERIFICATION)
+    email_verified_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    verification_token: Mapped[Optional[str]] = mapped_column(String(255))
+    verification_token_expires_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    
+    # Approval workflow
+    approval_requested_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    approved_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    approved_by_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("users.id"))
+    rejection_reason: Mapped[Optional[str]] = mapped_column(Text)
+    
+    # Enhanced user profile
+    primary_client_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("clients.id"))
+    department: Mapped[Optional[str]] = mapped_column(String(100))
+    job_title: Mapped[Optional[str]] = mapped_column(String(100))
+    phone_number: Mapped[Optional[str]] = mapped_column(String(20))
+    
     # Relationships
     permission_grants: Mapped[list["PermissionGrant"]] = relationship(
         "PermissionGrant", 
@@ -119,7 +183,7 @@ class User(Base):
         "UserPermission", back_populates="user", foreign_keys="UserPermission.user_id", cascade="all, delete-orphan"
     )
     client_assignments: Mapped[list["ClientAssignment"]] = relationship(
-        "ClientAssignment", back_populates="user", cascade="all, delete-orphan"
+        "ClientAssignment", back_populates="user", foreign_keys="ClientAssignment.user_id", cascade="all, delete-orphan"
     )
     password_reset_tokens: Mapped[list["PasswordResetToken"]] = relationship(
         "PasswordResetToken", back_populates="user", cascade="all, delete-orphan"
@@ -127,6 +191,66 @@ class User(Base):
     audit_logs: Mapped[list["AuditLog"]] = relationship(
         "AuditLog", back_populates="actor", cascade="all, delete-orphan"
     )
+    
+    # New relationships for enhanced user management
+    approved_by: Mapped[Optional["User"]] = relationship("User", remote_side=[id], foreign_keys=[approved_by_id])
+    primary_client: Mapped[Optional["Client"]] = relationship("Client", foreign_keys=[primary_client_id])
+    property_access_requests: Mapped[list["PropertyAccessRequest"]] = relationship(
+        "PropertyAccessRequest", back_populates="user", foreign_keys="PropertyAccessRequest.user_id", cascade="all, delete-orphan"
+    )
+    user_activity_logs: Mapped[list["UserActivityLog"]] = relationship(
+        "UserActivityLog", back_populates="user", foreign_keys="UserActivityLog.user_id", cascade="all, delete-orphan"
+    )
+    user_sessions: Mapped[list["UserSession"]] = relationship(
+        "UserSession", back_populates="user", cascade="all, delete-orphan"
+    )
+    
+    @property
+    def is_verified(self) -> bool:
+        """Check if user email is verified"""
+        return self.email_verified_at is not None
+    
+    @property
+    def is_approved(self) -> bool:
+        """Check if user is approved for system access"""
+        return self.registration_status == RegistrationStatus.APPROVED
+    
+    @property
+    def can_access_system(self) -> bool:
+        """Check if user can access the system"""
+        return (
+            self.is_verified and 
+            self.is_approved and 
+            self.status == UserStatus.ACTIVE
+        )
+    
+    def verify_email(self) -> bool:
+        """Mark user email as verified"""
+        if self.registration_status == RegistrationStatus.PENDING_VERIFICATION:
+            self.email_verified_at = datetime.utcnow()
+            self.registration_status = RegistrationStatus.VERIFIED
+            self.verification_token = None
+            self.verification_token_expires_at = None
+            return True
+        return False
+    
+    def approve_user(self, approver_id: int) -> bool:
+        """Approve user for system access"""
+        if self.registration_status in [RegistrationStatus.VERIFIED, RegistrationStatus.REJECTED]:
+            self.registration_status = RegistrationStatus.APPROVED
+            self.approved_at = datetime.utcnow()
+            self.approved_by_id = approver_id
+            self.rejection_reason = None
+            return True
+        return False
+    
+    def reject_user(self, reason: str) -> bool:
+        """Reject user registration"""
+        if self.registration_status in [RegistrationStatus.VERIFIED, RegistrationStatus.APPROVED]:
+            self.registration_status = RegistrationStatus.REJECTED
+            self.rejection_reason = reason
+            return True
+        return False
 
 
 class Client(Base):
@@ -343,9 +467,18 @@ class ClientAssignment(Base):
     
     # Assignment metadata
     status: Mapped[ClientAssignmentStatus] = mapped_column(Enum(ClientAssignmentStatus), default=ClientAssignmentStatus.ACTIVE)
+    assignment_type: Mapped[str] = mapped_column(String(20), default="manual")  # manual, auto, inherited
+    access_level: Mapped[AccessLevel] = mapped_column(Enum(AccessLevel), default=AccessLevel.STANDARD)
     assigned_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     expires_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
     notes: Mapped[Optional[str]] = mapped_column(Text)
+    
+    # Enhanced tracking
+    department: Mapped[Optional[str]] = mapped_column(String(100))
+    last_activity_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    deactivated_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    deactivated_by_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("users.id"))
+    deactivation_reason: Mapped[Optional[str]] = mapped_column(Text)
     
     # Tracking fields
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
@@ -355,6 +488,38 @@ class ClientAssignment(Base):
     user: Mapped["User"] = relationship("User", back_populates="client_assignments", foreign_keys=[user_id])
     client: Mapped["Client"] = relationship("Client", back_populates="client_assignments")
     assigned_by: Mapped["User"] = relationship("User", foreign_keys=[assigned_by_id])
+    deactivated_by: Mapped[Optional["User"]] = relationship("User", foreign_keys=[deactivated_by_id])
+    
+    @property
+    def is_active_assignment(self) -> bool:
+        """Check if assignment is currently active"""
+        return (
+            self.status == ClientAssignmentStatus.ACTIVE and
+            (self.expires_at is None or self.expires_at > datetime.utcnow()) and
+            self.deactivated_at is None
+        )
+    
+    def deactivate_assignment(self, deactivator_id: int, reason: str) -> bool:
+        """Deactivate the client assignment"""
+        if self.status != ClientAssignmentStatus.ACTIVE:
+            return False
+        
+        self.status = ClientAssignmentStatus.INACTIVE
+        self.deactivated_at = datetime.utcnow()
+        self.deactivated_by_id = deactivator_id
+        self.deactivation_reason = reason
+        return True
+    
+    def reactivate_assignment(self) -> bool:
+        """Reactivate the client assignment"""
+        if self.deactivated_at is None:
+            return False
+        
+        self.status = ClientAssignmentStatus.ACTIVE
+        self.deactivated_at = None
+        self.deactivated_by_id = None
+        self.deactivation_reason = None
+        return True
     
     # Add unique constraint to prevent duplicate assignments
     __table_args__ = (
@@ -693,3 +858,222 @@ class ReportDownloadLog(Base):
     
     # Relationships
     admin: Mapped["User"] = relationship("User")
+
+
+class PropertyAccessRequest(Base):
+    """Enhanced property access request model with comprehensive workflow"""
+    __tablename__ = "property_access_requests"
+    
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    
+    # Relationships
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
+    client_id: Mapped[int] = mapped_column(Integer, ForeignKey("clients.id"), nullable=False)
+    ga4_property_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("ga4_properties.id"))
+    requested_property_id: Mapped[str] = mapped_column(String(50), nullable=False)  # GA4 property ID string
+    
+    # Request details
+    status: Mapped[PropertyAccessStatus] = mapped_column(Enum(PropertyAccessStatus), default=PropertyAccessStatus.REQUESTED)
+    permission_level: Mapped[PermissionLevel] = mapped_column(Enum(PermissionLevel), nullable=False)
+    target_email: Mapped[str] = mapped_column(String(255), nullable=False)
+    business_justification: Mapped[str] = mapped_column(Text, nullable=False)
+    requested_duration_days: Mapped[int] = mapped_column(Integer, default=30, nullable=False)
+    
+    # Auto-approval settings
+    auto_approved: Mapped[bool] = mapped_column(Boolean, default=False)
+    requires_approval_from_role: Mapped[Optional[UserRole]] = mapped_column(Enum(UserRole))
+    
+    # Processing information
+    processed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    processed_by_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("users.id"))
+    processing_notes: Mapped[Optional[str]] = mapped_column(Text)
+    rejection_reason: Mapped[Optional[str]] = mapped_column(Text)
+    
+    # Approval workflow
+    approved_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    approved_by_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("users.id"))
+    expires_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    
+    # Revocation tracking
+    revoked_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    revoked_by_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("users.id"))
+    revocation_reason: Mapped[Optional[str]] = mapped_column(Text)
+    
+    # Metadata
+    priority_level: Mapped[PriorityLevel] = mapped_column(Enum(PriorityLevel), default=PriorityLevel.NORMAL)
+    external_ticket_id: Mapped[Optional[str]] = mapped_column(String(50))
+    
+    # Timestamps
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    
+    # Relationships
+    user: Mapped["User"] = relationship("User", back_populates="property_access_requests", foreign_keys=[user_id])
+    client: Mapped["Client"] = relationship("Client")
+    ga4_property: Mapped[Optional["GA4Property"]] = relationship("GA4Property")
+    processed_by: Mapped[Optional["User"]] = relationship("User", foreign_keys=[processed_by_id])
+    approved_by: Mapped[Optional["User"]] = relationship("User", foreign_keys=[approved_by_id])
+    revoked_by: Mapped[Optional["User"]] = relationship("User", foreign_keys=[revoked_by_id])
+    
+    @property
+    def is_active(self) -> bool:
+        """Check if access request is currently active"""
+        return (
+            self.status == PropertyAccessStatus.APPROVED and
+            (self.expires_at is None or self.expires_at > datetime.utcnow())
+        )
+    
+    @property
+    def days_until_expiry(self) -> int:
+        """Days until access expires"""
+        if not self.expires_at or self.expires_at <= datetime.utcnow():
+            return 0
+        return (self.expires_at - datetime.utcnow()).days
+    
+    @property
+    def is_expiring_soon(self) -> bool:
+        """Check if access expires within 7 days"""
+        return self.expires_at and 0 <= self.days_until_expiry <= 7
+    
+    def approve_request(self, approver_id: int, duration_days: int = None) -> bool:
+        """Approve the access request"""
+        if self.status != PropertyAccessStatus.REQUESTED:
+            return False
+        
+        self.status = PropertyAccessStatus.APPROVED
+        self.approved_at = datetime.utcnow()
+        self.approved_by_id = approver_id
+        
+        # Set expiration date
+        duration = duration_days or self.requested_duration_days
+        self.expires_at = datetime.utcnow() + timedelta(days=duration)
+        
+        return True
+    
+    def deny_request(self, processor_id: int, reason: str) -> bool:
+        """Deny the access request"""
+        if self.status != PropertyAccessStatus.REQUESTED:
+            return False
+        
+        self.status = PropertyAccessStatus.DENIED
+        self.processed_at = datetime.utcnow()
+        self.processed_by_id = processor_id
+        self.rejection_reason = reason
+        
+        return True
+    
+    def revoke_access(self, revoker_id: int, reason: str) -> bool:
+        """Revoke approved access"""
+        if self.status != PropertyAccessStatus.APPROVED:
+            return False
+        
+        self.status = PropertyAccessStatus.REVOKED
+        self.revoked_at = datetime.utcnow()
+        self.revoked_by_id = revoker_id
+        self.revocation_reason = reason
+        
+        return True
+
+
+class UserActivityLog(Base):
+    """Comprehensive user activity audit log"""
+    __tablename__ = "user_activity_logs"
+    
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    
+    # Relationships
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
+    target_user_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("users.id"))  # For admin actions on other users
+    client_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("clients.id"))
+    property_access_request_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("property_access_requests.id"))
+    
+    # Activity details
+    activity_type: Mapped[ActivityType] = mapped_column(Enum(ActivityType), nullable=False)
+    action: Mapped[str] = mapped_column(String(100), nullable=False)
+    resource_type: Mapped[Optional[str]] = mapped_column(String(50))
+    resource_id: Mapped[Optional[str]] = mapped_column(String(100))
+    
+    # Request context
+    ip_address: Mapped[Optional[str]] = mapped_column(String(45))  # Support IPv4 and IPv6
+    user_agent: Mapped[Optional[str]] = mapped_column(Text)
+    session_id: Mapped[Optional[str]] = mapped_column(String(255))
+    
+    # Additional metadata
+    details: Mapped[Optional[dict]] = mapped_column(JSON)
+    success: Mapped[bool] = mapped_column(Boolean, default=True)
+    error_message: Mapped[Optional[str]] = mapped_column(Text)
+    
+    # Timing
+    duration_ms: Mapped[Optional[int]] = mapped_column(Integer)  # How long the action took
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    
+    # Relationships
+    user: Mapped["User"] = relationship("User", back_populates="user_activity_logs", foreign_keys=[user_id])
+    target_user: Mapped[Optional["User"]] = relationship("User", foreign_keys=[target_user_id])
+    client: Mapped[Optional["Client"]] = relationship("Client")
+    property_access_request: Mapped[Optional["PropertyAccessRequest"]] = relationship("PropertyAccessRequest")
+
+
+class UserSession(Base):
+    """User session tracking with security features"""
+    __tablename__ = "user_sessions"
+    
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    
+    # Relationships
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
+    
+    # Session details
+    session_token: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
+    refresh_token: Mapped[Optional[str]] = mapped_column(String(255), unique=True)
+    session_data: Mapped[Optional[dict]] = mapped_column(JSON)
+    
+    # Security tracking
+    ip_address: Mapped[str] = mapped_column(String(45), nullable=False)  # Support IPv4 and IPv6
+    user_agent: Mapped[Optional[str]] = mapped_column(Text)
+    device_fingerprint: Mapped[Optional[str]] = mapped_column(String(255))
+    
+    # Session lifecycle
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    last_activity_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    
+    # Logout tracking
+    logged_out_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    logout_reason: Mapped[Optional[str]] = mapped_column(String(50))  # 'user_logout', 'timeout', 'admin_revoke', 'security'
+    
+    # Timestamps
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    
+    # Relationships
+    user: Mapped["User"] = relationship("User", back_populates="user_sessions")
+    
+    @property
+    def is_expired(self) -> bool:
+        """Check if session is expired"""
+        return self.expires_at <= datetime.utcnow()
+    
+    @property
+    def time_until_expiry(self) -> timedelta:
+        """Time until session expires"""
+        return max(timedelta(0), self.expires_at - datetime.utcnow())
+    
+    def extend_session(self, additional_hours: int = 24) -> bool:
+        """Extend session expiration"""
+        if not self.is_active or self.is_expired:
+            return False
+        
+        self.expires_at = datetime.utcnow() + timedelta(hours=additional_hours)
+        self.last_activity_at = datetime.utcnow()
+        return True
+    
+    def terminate_session(self, reason: str = "user_logout") -> bool:
+        """Terminate the session"""
+        if not self.is_active:
+            return False
+        
+        self.is_active = False
+        self.logged_out_at = datetime.utcnow()
+        self.logout_reason = reason
+        return True

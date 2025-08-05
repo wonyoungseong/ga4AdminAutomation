@@ -34,16 +34,34 @@ async def register(
         )
 
 
-@router.post("/login", response_model=Token)
+@router.post("/login")
 async def login(
     login_data: UserLogin,
     db: Annotated[AsyncSession, Depends(get_db)]
 ):
-    """Authenticate user and return access token"""
+    """Authenticate user and return access token with user info"""
     try:
         auth_service = AuthService(db)
-        token = await auth_service.authenticate_user(login_data)
-        return token
+        token, user = await auth_service.authenticate_user(login_data)
+        
+        return {
+            "access_token": token.access_token,
+            "refresh_token": token.refresh_token,
+            "token_type": token.token_type,
+            "expires_in": token.expires_in,
+            "user": {
+                "id": user.id,
+                "email": user.email,
+                "name": user.name,
+                "role": user.role.value,
+                "status": user.status.value,
+                "registration_status": user.registration_status.value,
+                "company": user.company,
+                "is_representative": user.is_representative,
+                "created_at": user.created_at.isoformat(),
+                "last_login_at": user.last_login_at.isoformat() if user.last_login_at else None
+            }
+        }
     except AuthenticationError as e:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
