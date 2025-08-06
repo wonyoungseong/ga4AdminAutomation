@@ -1,0 +1,90 @@
+{
+  "timestamp": "2025-08-06T09:06:31.372503",
+  "summary": {
+    "total": 10,
+    "working": 8,
+    "success_rate": 80.0
+  },
+  "endpoints": [
+    {
+      "name": "Health Check",
+      "url": "/health",
+      "method": "GET",
+      "status_code": 200,
+      "working": true,
+      "response_preview": "{\"status\":\"healthy\",\"timestamp\":1754438791.366106,\"service\":\"ga4-admin-backend\",\"version\":\"2.0.0\"}"
+    },
+    {
+      "name": "Auto Approval Rules",
+      "url": "/api/permission-requests/auto-approval-rules",
+      "method": "GET",
+      "status_code": 403,
+      "working": true,
+      "response_preview": "{\"detail\":\"Not authenticated\"}"
+    },
+    {
+      "name": "My Permission Requests",
+      "url": "/api/permission-requests/my-requests",
+      "method": "GET",
+      "status_code": 403,
+      "working": true,
+      "response_preview": "{\"detail\":\"Not authenticated\"}"
+    },
+    {
+      "name": "Permission Dashboard",
+      "url": "/api/permission-lifecycle/dashboard",
+      "method": "GET",
+      "status_code": 403,
+      "working": true,
+      "response_preview": "{\"detail\":\"Not authenticated\"}"
+    },
+    {
+      "name": "Expiring Permissions",
+      "url": "/api/permission-lifecycle/expiring",
+      "method": "GET",
+      "status_code": 403,
+      "working": true,
+      "response_preview": "{\"detail\":\"Not authenticated\"}"
+    },
+    {
+      "name": "GA4 Properties",
+      "url": "/api/ga4/",
+      "method": "GET",
+      "status_code": 403,
+      "working": true,
+      "response_preview": "{\"detail\":\"Not authenticated\"}"
+    },
+    {
+      "name": "GA4 Accounts",
+      "url": "/api/ga4/accounts",
+      "method": "GET",
+      "status_code": 403,
+      "working": true,
+      "response_preview": "{\"detail\":\"Not authenticated\"}"
+    },
+    {
+      "name": "Users List",
+      "url": "/api/users/",
+      "method": "GET",
+      "status_code": 403,
+      "working": true,
+      "response_preview": "{\"detail\":\"Not authenticated\"}"
+    },
+    {
+      "name": "RBAC Permissions",
+      "url": "/permissions",
+      "method": "GET",
+      "status_code": 404,
+      "working": false,
+      "response_preview": "{\"detail\":\"Not Found\"}"
+    },
+    {
+      "name": "RBAC Roles",
+      "url": "/roles",
+      "method": "GET",
+      "status_code": 404,
+      "working": false,
+      "response_preview": "{\"detail\":\"Not Found\"}"
+    }
+  ]
+}

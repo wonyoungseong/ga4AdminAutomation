@@ -1,0 +1,80 @@
+{
+  "total_tests": 8,
+  "passed": 0,
+  "failed": 8,
+  "success_rate": 0.0,
+  "detailed_results": [
+    {
+      "test_name": "Health Check",
+      "success": false,
+      "timestamp": "2025-08-06T09:03:06.809726",
+      "details": {
+        "error": "All connection attempts failed",
+        "message": "Health check failed"
+      }
+    },
+    {
+      "test_name": "Permission Requests List",
+      "success": false,
+      "timestamp": "2025-08-06T09:03:07.315839",
+      "details": {
+        "error": "All connection attempts failed",
+        "message": "Permission requests list failed"
+      }
+    },
+    {
+      "test_name": "Permission Lifecycle Dashboard",
+      "success": false,
+      "timestamp": "2025-08-06T09:03:07.819971",
+      "details": {
+        "error": "All connection attempts failed",
+        "message": "Permission lifecycle dashboard failed"
+      }
+    },
+    {
+      "test_name": "GA4 Properties List",
+      "success": false,
+      "timestamp": "2025-08-06T09:03:08.323097",
+      "details": {
+        "error": "All connection attempts failed",
+        "message": "GA4 properties list failed"
+      }
+    },
+    {
+      "test_name": "RBAC Permissions Endpoint",
+      "success": false,
+      "timestamp": "2025-08-06T09:03:08.825884",
+      "details": {
+        "error": "All connection attempts failed",
+        "message": "RBAC permissions test failed"
+      }
+    },
+    {
+      "test_name": "Permission Auto-Approval Rules",
+      "success": false,
+      "timestamp": "2025-08-06T09:03:09.329149",
+      "details": {
+        "error": "All connection attempts failed",
+        "message": "Auto-approval rules test failed"
+      }
+    },
+    {
+      "test_name": "Expiring Permissions List",
+      "success": false,
+      "timestamp": "2025-08-06T09:03:09.832060",
+      "details": {
+        "error": "All connection attempts failed",
+        "message": "Expiring permissions list failed"
+      }
+    },
+    {
+      "test_name": "Users List with RBAC",
+      "success": false,
+      "timestamp": "2025-08-06T09:03:10.335147",
+      "details": {
+        "error": "All connection attempts failed",
+        "message": "Users list with RBAC failed"
+      }
+    }
+  ]
+}

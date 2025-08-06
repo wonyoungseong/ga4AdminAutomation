@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ...core.database import get_db
-from ...core.auth_dependencies import get_current_user, require_roles
+from ...core.rbac import Permission, require_permission, get_current_user_with_permissions
 from ...models.db_models import User, UserRole, PermissionRequestStatus
 from ...models.schemas import (
     PermissionRequestCreate, PermissionRequestResponse, PermissionRequestUpdate,
@@ -45,9 +45,10 @@ async def get_permission_request_service(
 
 
 @router.get("/clients/{client_id}/properties", response_model=ClientPropertiesResponse)
+@require_permission(Permission.CLIENT_READ)
 async def get_client_properties(
     client_id: int,
-    current_user: User = Depends(get_current_user),
+    current_user: dict = Depends(get_current_user_with_permissions),
     service: PermissionRequestService = Depends(get_permission_request_service)
 ):
     """
@@ -57,7 +58,7 @@ async def get_client_properties(
     User must be assigned to the client to view its properties.
     """
     try:
-        return await service.get_client_available_properties(current_user.id, client_id)
+        return await service.get_client_available_properties(current_user["user_id"], client_id)
     except UnauthorizedError:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -71,9 +72,10 @@ async def get_client_properties(
 
 
 @router.post("/", response_model=PermissionRequestResponse, status_code=status.HTTP_201_CREATED)
+@require_permission(Permission.PERMISSION_CREATE)
 async def submit_permission_request(
     request_data: PermissionRequestCreate,
-    current_user: User = Depends(get_current_user),
+    current_user: dict = Depends(get_current_user_with_permissions),
     service: PermissionRequestService = Depends(get_permission_request_service)
 ):
     """
@@ -89,7 +91,7 @@ async def submit_permission_request(
     - Administrator: Requires Super Admin approval
     """
     try:
-        return await service.submit_permission_request(current_user.id, request_data)
+        return await service.submit_permission_request(current_user["user_id"], request_data)
     except UnauthorizedError as e:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -113,8 +115,9 @@ async def submit_permission_request(
 
 
 @router.get("/auto-approval-rules")
+@require_permission(Permission.PERMISSION_READ)
 async def get_auto_approval_rules(
-    current_user: User = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user_with_permissions)
 ):
     """
     Get auto-approval rules for all permission levels and the current user's role
@@ -128,18 +131,19 @@ async def get_auto_approval_rules(
     service = PermissionRequestService(None, None, None, None)  # Only using static method
     
     for perm_level in PermissionLevel:
-        rule = await service.evaluate_auto_approval(current_user.role, perm_level, 0)  # client_id not used in static evaluation
+        rule = await service.evaluate_auto_approval(current_user["role"], perm_level, 0)  # client_id not used in static evaluation
         rules.append(rule)
     
-    return {"rules": rules, "user_role": current_user.role}
+    return {"rules": rules, "user_role": current_user["role"]}
 
 
 @router.get("/my-requests", response_model=List[PermissionRequestResponse])
+@require_permission(Permission.PERMISSION_READ, resource_ownership=True, allow_self_access=True)
 async def get_my_permission_requests(
     status_filter: Optional[PermissionRequestStatus] = Query(None, alias="status"),
     limit: int = Query(50, ge=1, le=100),
     offset: int = Query(0, ge=0),
-    current_user: User = Depends(get_current_user),
+    current_user: dict = Depends(get_current_user_with_permissions),
     service: PermissionRequestService = Depends(get_permission_request_service)
 ):
     """
@@ -149,15 +153,16 @@ async def get_my_permission_requests(
     optionally filtered by status.
     """
     return await service.get_user_permission_requests(
-        current_user.id, status_filter, limit, offset
+        current_user["user_id"], status_filter, limit, offset
     )
 
 
 @router.get("/pending-approvals", response_model=List[PermissionRequestResponse])
+@require_permission(Permission.PERMISSION_READ)
 async def get_pending_approval_requests(
     limit: int = Query(50, ge=1, le=100),
     offset: int = Query(0, ge=0),
-    current_user: User = Depends(require_role([UserRole.ADMIN, UserRole.SUPER_ADMIN])),
+    current_user: dict = Depends(get_current_user_with_permissions),
     service: PermissionRequestService = Depends(get_permission_request_service)
 ):
     """
@@ -170,15 +175,16 @@ async def get_pending_approval_requests(
     Only accessible to Admin and Super Admin users.
     """
     return await service.get_pending_requests_for_approval(
-        current_user.id, limit, offset
+        current_user["user_id"], limit, offset
     )
 
 
 @router.put("/{request_id}/approve", response_model=PermissionRequestResponse)
+@require_permission(Permission.PERMISSION_APPROVE)
 async def approve_permission_request(
     request_id: int,
     processing_notes: Optional[str] = None,
-    current_user: User = Depends(require_role([UserRole.ADMIN, UserRole.SUPER_ADMIN])),
+    current_user: dict = Depends(get_current_user_with_permissions),
     service: PermissionRequestService = Depends(get_permission_request_service)
 ):
     """
@@ -191,7 +197,7 @@ async def approve_permission_request(
     """
     try:
         return await service.approve_permission_request(
-            request_id, current_user.id, processing_notes
+            request_id, current_user["user_id"], processing_notes
         )
     except ResourceNotFoundError as e:
         raise HTTPException(
@@ -216,10 +222,11 @@ async def approve_permission_request(
 
 
 @router.put("/{request_id}/reject", response_model=PermissionRequestResponse)
+@require_permission(Permission.PERMISSION_APPROVE)
 async def reject_permission_request(
     request_id: int,
     rejection_data: dict,  # {"processing_notes": "reason for rejection"}
-    current_user: User = Depends(require_role([UserRole.ADMIN, UserRole.SUPER_ADMIN])),
+    current_user: dict = Depends(get_current_user_with_permissions),
     service: PermissionRequestService = Depends(get_permission_request_service)
 ):
     """
@@ -239,7 +246,7 @@ async def reject_permission_request(
     
     try:
         return await service.reject_permission_request(
-            request_id, current_user.id, processing_notes
+            request_id, current_user["user_id"], processing_notes
         )
     except ResourceNotFoundError as e:
         raise HTTPException(
@@ -256,7 +263,7 @@ async def reject_permission_request(
 @router.get("/{request_id}", response_model=PermissionRequestResponse)
 async def get_permission_request(
     request_id: int,
-    current_user: User = Depends(get_current_user),
+    current_user: dict = Depends(get_current_user_with_permissions),
     service: PermissionRequestService = Depends(get_permission_request_service)
 ):
     """
@@ -287,14 +294,14 @@ async def get_permission_request(
     can_view = False
     
     # Users can view their own requests
-    if permission_request.user_id == current_user.id:
+    if permission_request.user_id == current_user["user_id"]:
         can_view = True
     
     # Admins and Super Admins can view requests they can approve
-    elif current_user.role in [UserRole.ADMIN, UserRole.SUPER_ADMIN]:
-        if current_user.role == UserRole.SUPER_ADMIN:
+    elif current_user["role"] in ["admin", "super_admin"]:
+        if current_user["role"] == "super_admin":
             can_view = True  # Super Admin can view all
-        elif current_user.role == UserRole.ADMIN and permission_request.requires_approval_from_role == UserRole.ADMIN:
+        elif current_user["role"] == "admin" and permission_request.requires_approval_from_role.value == "admin":
             can_view = True
     
     if not can_view:
@@ -309,7 +316,7 @@ async def get_permission_request(
 @router.delete("/{request_id}", response_model=MessageResponse)
 async def cancel_permission_request(
     request_id: int,
-    current_user: User = Depends(get_current_user),
+    current_user: dict = Depends(get_current_user_with_permissions),
     service: PermissionRequestService = Depends(get_permission_request_service)
 ):
     """
@@ -327,7 +334,7 @@ async def cancel_permission_request(
     # Get the permission request
     query = select(PermissionRequest).where(
         PermissionRequest.id == request_id,
-        PermissionRequest.user_id == current_user.id
+        PermissionRequest.user_id == current_user["user_id"]
     )
     result = await db.execute(query)
     permission_request = result.scalar_one_or_none()
@@ -347,14 +354,14 @@ async def cancel_permission_request(
     # Update status to cancelled
     permission_request.status = PermissionRequestStatus.CANCELLED
     permission_request.processed_at = datetime.utcnow()
-    permission_request.processed_by_id = current_user.id
+    permission_request.processed_by_id = current_user["user_id"]
     permission_request.processing_notes = "Cancelled by user"
     
     await db.commit()
     
     # Log the action
     await service.audit_service.log_action(
-        actor_id=current_user.id,
+        actor_id=current_user["user_id"],
         action="cancel_permission_request",
         resource_type="permission_request",
         resource_id=str(request_id),

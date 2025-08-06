@@ -1,0 +1,196 @@
+{
+  "timestamp": "2025-08-06T09:07:21.751980",
+  "summary": {
+    "overall_success_rate": 100.0,
+    "status": "EXCELLENT",
+    "ga4_success_rate": 100.0,
+    "rbac_success_rate": 100.0,
+    "service_account_success_rate": 100.0
+  },
+  "categories": {
+    "ga4_integration": [
+      {
+        "name": "GA4 Properties List",
+        "url": "/api/ga4/",
+        "method": "GET",
+        "status_code": 403,
+        "expected_codes": [
+          200,
+          403,
+          503
+        ],
+        "working": true,
+        "response_preview": "{\"detail\":\"Not authenticated\"}"
+      },
+      {
+        "name": "GA4 Accounts",
+        "url": "/api/ga4/accounts",
+        "method": "GET",
+        "status_code": 403,
+        "expected_codes": [
+          200,
+          403,
+          503
+        ],
+        "working": true,
+        "response_preview": "{\"detail\":\"Not authenticated\"}"
+      },
+      {
+        "name": "GA4 Property Details",
+        "url": "/api/ga4/properties/12345",
+        "method": "GET",
+        "status_code": 403,
+        "expected_codes": [
+          403,
+          404,
+          503
+        ],
+        "working": true,
+        "response_preview": "{\"detail\":\"Not authenticated\"}"
+      },
+      {
+        "name": "GA4 Property Permissions",
+        "url": "/api/ga4/properties/12345/permissions",
+        "method": "GET",
+        "status_code": 403,
+        "expected_codes": [
+          403,
+          404,
+          503
+        ],
+        "working": true,
+        "response_preview": "{\"detail\":\"Not authenticated\"}"
+      },
+      {
+        "name": "Grant GA4 Permission",
+        "url": "/api/ga4/properties/12345/grant-permission",
+        "method": "POST",
+        "status_code": 403,
+        "expected_codes": [
+          403,
+          422,
+          503
+        ],
+        "working": true,
+        "response_preview": "{\"detail\":\"Not authenticated\"}"
+      },
+      {
+        "name": "Revoke GA4 Permission",
+        "url": "/api/ga4/properties/12345/revoke-permission?target_email=test@example.com",
+        "method": "DELETE",
+        "status_code": 403,
+        "expected_codes": [
+          403,
+          422,
+          503
+        ],
+        "working": true,
+        "response_preview": "{\"detail\":\"Not authenticated\"}"
+      },
+      {
+        "name": "GA4 Properties (Alt)",
+        "url": "/api/ga4-properties/",
+        "method": "GET",
+        "status_code": 403,
+        "expected_codes": [
+          200,
+          403,
+          503
+        ],
+        "working": true,
+        "response_preview": "{\"detail\":\"Not authenticated\"}"
+      },
+      {
+        "name": "GA4 Accounts (Alt)",
+        "url": "/api/ga4-properties/accounts",
+        "method": "GET",
+        "status_code": 403,
+        "expected_codes": [
+          200,
+          403,
+          503
+        ],
+        "working": true,
+        "response_preview": "{\"detail\":\"Not authenticated\"}"
+      },
+      {
+        "name": "Client GA4 Properties",
+        "url": "/api/permission-requests/clients/1/properties",
+        "method": "GET",
+        "status_code": 403,
+        "expected_codes": [
+          403,
+          404,
+          503
+        ],
+        "working": true,
+        "response_preview": "{\"detail\":\"Not authenticated\"}"
+      }
+    ],
+    "rbac_integration": [
+      {
+        "name": "RBAC Roles",
+        "url": "/api/rbac/roles",
+        "method": "GET",
+        "status_code": 403,
+        "expected_codes": [
+          200,
+          403
+        ],
+        "working": true,
+        "response_preview": "{\"detail\":\"Not authenticated\"}"
+      },
+      {
+        "name": "RBAC Role Hierarchy",
+        "url": "/api/rbac/role-hierarchy",
+        "method": "GET",
+        "status_code": 403,
+        "expected_codes": [
+          200,
+          403
+        ],
+        "working": true,
+        "response_preview": "{\"detail\":\"Not authenticated\"}"
+      }
+    ],
+    "service_account_integration": [
+      {
+        "name": "Service Accounts List",
+        "url": "/api/service-accounts/",
+        "method": "GET",
+        "status_code": 403,
+        "expected_codes": [
+          200,
+          403
+        ],
+        "working": true,
+        "response_preview": "{\"detail\":\"Not authenticated\"}"
+      },
+      {
+        "name": "Service Account Properties",
+        "url": "/api/service-accounts/1/properties",
+        "method": "GET",
+        "status_code": 403,
+        "expected_codes": [
+          403,
+          404
+        ],
+        "working": true,
+        "response_preview": "{\"detail\":\"Not authenticated\"}"
+      },
+      {
+        "name": "Discover GA4 Properties",
+        "url": "/api/service-accounts/1/discover-properties",
+        "method": "POST",
+        "status_code": 403,
+        "expected_codes": [
+          403,
+          404,
+          422
+        ],
+        "working": true,
+        "response_preview": "{\"detail\":\"Not authenticated\"}"
+      }
+    ]
+  }
+}

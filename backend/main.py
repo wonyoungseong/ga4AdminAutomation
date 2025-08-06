@@ -13,7 +13,7 @@ import logging
 from contextlib import asynccontextmanager
 import os
 
-from src.api.routers import auth, users, permissions, clients, ga4, health, service_accounts, rbac
+from src.api.routers import auth, users, permissions, clients, ga4, health, service_accounts, rbac, permission_requests, permission_lifecycle
 # Temporarily exclude problematic routers: notifications, audit, dashboard, ui_components, role_management, enhanced_users
 # from src.api.routers import enhanced_auth, enhanced_users  # Temporarily disabled due to syntax errors
 from src.core.config import settings
@@ -128,6 +128,8 @@ app.include_router(service_accounts.router, prefix="/api/service-accounts", tags
 # app.include_router(dashboard.router, prefix="/api/dashboard", tags=["Dashboard"])
 # app.include_router(ui_components.router, prefix="/api/ui", tags=["UI Components"])
 app.include_router(rbac.router, tags=["RBAC - Role & Permission Management"])
+app.include_router(permission_requests.router, prefix="/api", tags=["Permission Requests"])
+app.include_router(permission_lifecycle.router, prefix="/api", tags=["Permission Lifecycle"])
 # app.include_router(enhanced_users.router, tags=["Enhanced User Management"])
 
 

@@ -748,6 +748,87 @@ export class TypeSafeApiClient {
     return this.request<GA4Property[]>(`/api/permission-requests/clients/${clientId}/properties`);
   }
 
+  // ===== Permission Requests Management =====
+
+  async getMyPermissionRequests(
+    status?: string,
+    limit: number = 50,
+    offset: number = 0
+  ): Promise<any[]> {
+    const params = new URLSearchParams({
+      limit: limit.toString(),
+      offset: offset.toString(),
+    });
+    
+    if (status) params.append('status', status);
+
+    const response = await this.request<any[]>(`/api/permission-requests/my-requests?${params}`);
+    return Array.isArray(response) ? response : [];
+  }
+
+  async getPendingApprovalRequests(
+    limit: number = 50,
+    offset: number = 0
+  ): Promise<any[]> {
+    const params = new URLSearchParams({
+      limit: limit.toString(),
+      offset: offset.toString(),
+    });
+
+    const response = await this.request<any[]>(`/api/permission-requests/pending-approvals?${params}`);
+    return Array.isArray(response) ? response : [];
+  }
+
+  async submitPermissionRequest(requestData: {
+    client_id: number;
+    ga_property_id: string;
+    target_email: string;
+    permission_level: string;
+    business_justification: string;
+    requested_duration_days: number;
+  }): Promise<any> {
+    return this.request<any>('/api/permission-requests/', {
+      method: 'POST',
+      body: JSON.stringify(requestData),
+    });
+  }
+
+  async approvePermissionRequest(
+    requestId: number,
+    processingNotes?: string
+  ): Promise<any> {
+    return this.request<any>(`/api/permission-requests/${requestId}/approve`, {
+      method: 'PUT',
+      body: JSON.stringify({ processing_notes: processingNotes }),
+    });
+  }
+
+  async rejectPermissionRequest(
+    requestId: number,
+    processingNotes: string
+  ): Promise<any> {
+    return this.request<any>(`/api/permission-requests/${requestId}/reject`, {
+      method: 'PUT',
+      body: JSON.stringify({ processing_notes: processingNotes }),
+    });
+  }
+
+  async cancelPermissionRequest(requestId: number): Promise<{ message: string }> {
+    return this.request<{ message: string }>(`/api/permission-requests/${requestId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async getAutoApprovalRules(): Promise<{
+    rules: any[];
+    user_role: string;
+  }> {
+    return this.request<{
+      rules: any[];
+      user_role: string;
+    }>('/api/permission-requests/auto-approval-rules');
+  }
+
   // ===== User Activity & Audit Logs =====
 
   async getUserActivityLogs(
